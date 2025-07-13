@@ -1,22 +1,19 @@
 import socket  # noqa: F401
+import threading
 
 MAX_BUF_SIZE = 512
 
 
-def readall(connection: socket.socket):
-    """
-    This readall method needs to handle cases when not all bytes are read (edge cases).
-    """
-    return connection.recv(MAX_BUF_SIZE)
-
-
-def handle_connection(connection: socket.socket):
+def handle_connection(client_socket: socket.socket):
+    buf = b""
     while True:
-        buf = connection.recv(MAX_BUF_SIZE)
-        if not buf:  # empty buffer means client has disconnected
+        chunk = client_socket.recv(MAX_BUF_SIZE)
+        if not chunk:  # empty buffer means client has disconnected
             break
 
-        connection.sendall(b"+PONG\r\n")
+        buf += chunk # handle this in the parsing step 
+
+        client_socket.sendall(b"+PONG\r\n")
 
 
 def main():
@@ -24,8 +21,8 @@ def main():
     server_socket = socket.create_server(("localhost", 6379), reuse_port=True)
 
     while True:
-        connection, _ = server_socket.accept()  # wait for client
-        handle_connection(connection)
+        client_socket, _ = server_socket.accept()  # wait for client
+        threading.Thread(target=handle_connection, args=(client_socket,)).start()
 
 
 if __name__ == "__main__":
