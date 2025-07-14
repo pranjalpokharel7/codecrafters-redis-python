@@ -1,19 +1,31 @@
 import socket  # noqa: F401
 import threading
 
+from app.types.types import Array
+
 MAX_BUF_SIZE = 512
+
+from app.types import resp_type_from_bytes
 
 
 def handle_connection(client_socket: socket.socket):
-    buf = b""
     while True:
         chunk = client_socket.recv(MAX_BUF_SIZE)
         if not chunk:  # empty buffer means client has disconnected
             break
 
-        buf += chunk # handle this in the parsing step 
+        parsed_input, _ = resp_type_from_bytes(chunk)
 
-        client_socket.sendall(b"+PONG\r\n")
+        # parsing further to commands will be refactored in the next stage
+        response = b"+PONG\r\n"
+        if isinstance(parsed_input, Array):
+            array = parsed_input.value
+            command = array[0]
+            args = array[1:]
+            if command.value == "ECHO":
+                response = bytes(args[0])
+
+        client_socket.sendall(response)
 
 
 def main():
