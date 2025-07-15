@@ -1,7 +1,7 @@
 from typing import Iterator
 
 
-def cr_parse(buf) -> Iterator[tuple[bytes, int]]:
+def cr_parser(buf) -> Iterator[tuple[bytes, int]]:
     """
     Generator that returns all bytes until a carriage return is found.
     Additionally returns the index to the next character to parse 

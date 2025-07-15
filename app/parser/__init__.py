@@ -1,1 +1,1 @@
-from .cr_parser import cr_parse
+from .cr_parser import cr_parser
