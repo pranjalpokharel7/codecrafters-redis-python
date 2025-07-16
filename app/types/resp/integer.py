@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing_extensions import Self
 
-from app.parser.cr_parser import cr_parser
+from app.types.parser import cr_parser
 from app.types.base import RESPType, Deserializable, Serializable
 from app.types.constants import SB_INTEGER
 
@@ -12,7 +12,7 @@ class Integer(RESPType, Serializable, Deserializable):
     start_byte = SB_INTEGER
 
     def __bytes__(self) -> bytes:
-        return f":{self.value}\r\n".encode()
+        return f":{int(self.value)}\r\n".encode()
 
     @classmethod
     def from_bytes(cls, data: bytes) -> tuple[Self, int]:

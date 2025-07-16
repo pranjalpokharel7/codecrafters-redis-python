@@ -1,3 +1,7 @@
+"""This module defines all errors that are raised during redis storage
+operations."""
+
+
 class StorageError(BaseException):
     pass
 

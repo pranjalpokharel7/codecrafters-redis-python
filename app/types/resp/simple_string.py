@@ -1,13 +1,14 @@
 from dataclasses import dataclass
+
 from typing_extensions import Self
 
-from app.parser.cr_parser import cr_parser
-from app.types.base import Deserializable, Serializable
+from app.types.parser import cr_parser
+from app.types.base import Deserializable, RESPType, Serializable
 from app.types.constants import SB_SIMPLE_STRING
 
 
 @dataclass
-class SimpleString(Serializable, Deserializable):
+class SimpleString(RESPType, Serializable, Deserializable):
     value: bytes  # store as binary string to avoid unnecessary encoding/decoding
     start_byte = SB_SIMPLE_STRING
 
@@ -16,8 +17,7 @@ class SimpleString(Serializable, Deserializable):
 
     @classmethod
     def from_bytes(cls, data: bytes) -> tuple[Self, int]:
-        """
-        Deserializes bytes to RESP Simple String type.
+        """Deserializes bytes to RESP Simple String type.
 
         Args:
             data (bytes): The byte buffer to deserialize, expected format: b"+<data>\r\n"

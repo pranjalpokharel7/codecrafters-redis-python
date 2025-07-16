@@ -19,8 +19,6 @@ class CommandArgument:
         None  # mapping function to be applied to argument
     )
 
-    # TODO: should we also add a `validate` closure function?
-
 
 class CommandArgParser:
     """Parser to parse command and it's arguments based on the definition
@@ -65,7 +63,7 @@ class CommandArgParser:
                 else:
                     value = args_list[arg.pos]
 
-                # apply mapping function if it is defined (should we instead define a default map_fn?)
+                # apply mapping function (if defined)
                 if arg.map_fn:
                     value = arg.map_fn(value)
 

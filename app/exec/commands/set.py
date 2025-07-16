@@ -23,14 +23,8 @@ class CommandSet(RedisCommand):
 
     def __init__(self, args_list: list):
         parser = CommandArgParser()
-
-        # need to map resp type to byte literals
-        # TODO: should we instead map to bytes before passing into init?
-        # would make more sense to expect list[bytes]? 
-        # but we still have parsed int? for expiry value as example
         parser.add_argument("key", 0)
         parser.add_argument("value", 1)
-
         parser.add_argument("expiry", 2, required=False)
         parser.add_argument("expiry_value", 3, required=False)
 

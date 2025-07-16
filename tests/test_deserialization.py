@@ -26,7 +26,7 @@ def test_deserialize_integer():
     input = b":12345\r\n"
     element, _ = resp_type_from_bytes(input)
     assert isinstance(element, Integer)
-    assert element.value == 12345
+    assert int(element.value) == 12345
 
 
 def test_deserialize_bulk_string():

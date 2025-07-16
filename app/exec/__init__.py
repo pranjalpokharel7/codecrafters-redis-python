@@ -1,7 +1,7 @@
 from app.exec.base import RedisCommand
 from .commands import *
 
-# map command name in bytes to their command constructor class
+# map from command name in bytes to their constructor class
 NAME_TO_COMMANDS_MAP: dict[bytes, type[RedisCommand]] = {
     b"ECHO": CommandEcho,
     b"PING": CommandPing,

@@ -1,14 +1,15 @@
 from dataclasses import dataclass
+
 from typing_extensions import Self
 
-from app.parser.cr_parser import cr_parser
-from app.types.base import Deserializable, Serializable, RESPType
+from app.types.base import Deserializable, RESPType, Serializable
 from app.types.constants import SB_BULK_STRING
+from app.types.parser import cr_parser
 
 
 @dataclass
 class BulkString(RESPType, Serializable, Deserializable):
-    value: bytes = b""  # bulk string can be non-utf8 data, store as binary
+    value: bytes  # bulk string can be non-utf8 data, store as binary
     start_byte = SB_BULK_STRING
 
     def __bytes__(self) -> bytes:
@@ -21,8 +22,7 @@ class BulkString(RESPType, Serializable, Deserializable):
 
     @classmethod
     def from_bytes(cls, data: bytes) -> tuple[Self, int]:
-        """
-        Deserializes bytes to RESP Bulk String type.
+        """Deserializes bytes to RESP Bulk String type.
 
         Args:
             data (bytes): The byte buffer to deserialize, expected format: b"$<length>\r\n<data>\r\n"
@@ -41,8 +41,9 @@ class BulkString(RESPType, Serializable, Deserializable):
         return cls(data[pos:end]), end + 2
 
     def __str__(self) -> str:
-        """
-        Decode internal bulk string value to utf-8 string (can raise an exception for binary data).
+        """Decode internal bulk string value to utf-8 string (can raise an
+        exception for binary data).
+
         Catch `UnicodeDecodeError` on call site.
         """
         return self.value.decode()

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from typing_extensions import Self
 
-from app.parser.cr_parser import cr_parser
+from app.types.parser import cr_parser
 from app.types.base import Deserializable, RESPType, Serializable
 from app.types.constants import SB_SIMPLE_ERROR
 

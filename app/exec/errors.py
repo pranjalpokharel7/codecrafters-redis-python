@@ -1,3 +1,7 @@
+"""This module defines all errors that are encountered during parsing and
+execution of a redis command."""
+
+
 class CommandError(BaseException):
     pass
 
@@ -12,8 +16,6 @@ class MissingArgument(CommandError):
         super().__init__(f"missing argument: {arg_name}")
 
 
-class CommandNameMismatch(CommandError):
-    def __init__(self, command_name: str, provided_name: str):
-        super().__init__(
-            f"command name mismatch: expected={command_name}, got={provided_name}"
-        )
+class UnrecognizedCommand(CommandError):
+    def __init__(self, command_name: bytes) -> None:
+        super().__init__(f"unrecognized command: {command_name}")
