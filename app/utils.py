@@ -1,6 +1,7 @@
-from app.exec import NAME_TO_COMMANDS_MAP
-from app.exec.base import RedisCommand
-from app.exec.errors import CommandEmpty, UnrecognizedCommand
+from app.logger import log
+from app.commands import NAME_TO_COMMANDS_MAP
+from app.commands.base import RedisCommand
+from app.commands.errors import CommandEmpty, UnrecognizedCommand
 from app.types.resp import Array, RespElement
 
 
@@ -28,11 +29,13 @@ def parsed_input_to_command(parsed_input: RespElement) -> RedisCommand:
     # Longest prefix match for compound commands
     compound_command_key = command_name + b" " + subcommand_name
     if compound_command_key in NAME_TO_COMMANDS_MAP:
+        log.info(f"received command: {compound_command_key}")
         mapped_command = NAME_TO_COMMANDS_MAP[compound_command_key]
         return mapped_command([element.value for element in array[2:]])
 
     # Shorter prefix match for single command names
     elif command_name in NAME_TO_COMMANDS_MAP:
+        log.info(f"received command: {command_name}")
         mapped_command = NAME_TO_COMMANDS_MAP[command_name]
         return mapped_command([element.value for element in array[1:]])
 

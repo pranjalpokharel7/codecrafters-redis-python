@@ -1,5 +1,5 @@
-from app.exec.base import RedisCommand
-from .commands import *
+from app.commands.base import RedisCommand
+from .handlers import *
 
 # map from command name in bytes to their constructor class
 NAME_TO_COMMANDS_MAP: dict[bytes, type[RedisCommand]] = {
@@ -7,4 +7,7 @@ NAME_TO_COMMANDS_MAP: dict[bytes, type[RedisCommand]] = {
     b"PING": CommandPing,
     b"GET": CommandGet,
     b"SET": CommandSet,
+
+    # CONFIG
+    b"CONFIG GET": CommandConfigGet,
 }

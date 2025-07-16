@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
-from app.exec.errors import MissingArgument
+from app.commands.errors import MissingArgument
 
 
 @dataclass

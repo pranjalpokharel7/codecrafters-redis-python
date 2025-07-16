@@ -1,4 +1,4 @@
-from app.exec.commands.ping import CommandPing
+from app.commands import CommandPing
 from tests.common import get_test_execution_context
 
 def test_command_ping_default():

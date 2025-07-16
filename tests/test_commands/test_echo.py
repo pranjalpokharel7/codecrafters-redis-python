@@ -1,5 +1,4 @@
-from app.exec.base import ExecutionContext
-from app.exec.commands.echo import CommandEcho
+from app.commands import CommandEcho
 from tests.common import get_test_execution_context
 
 

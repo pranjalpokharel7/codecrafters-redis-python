@@ -26,7 +26,7 @@ class Array(RESPType, Serializable, Deserializable):
 
     def __bytes__(self) -> bytes:
         out = [f"*{len(self.value)}\r\n".encode()]
-        out.extend(bytes(i) for i in self.value)
+        out.extend(bytes(element) for element in self.value)
         return b"".join(out)
 
     @classmethod

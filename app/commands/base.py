@@ -11,14 +11,8 @@ Example: encoding of command - ECHO hey
 """
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 
-from app.storage.base import RedisStorage
-
-
-@dataclass
-class ExecutionContext:
-    storage: RedisStorage
+from app.context import ExecutionContext
 
 
 class RedisCommand(ABC):
