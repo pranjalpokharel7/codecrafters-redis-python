@@ -1,7 +1,9 @@
+from time import time
+
 from app.exec.base import ExecutionContext, RedisCommand
 from app.exec.parser import CommandArgParser
+from app.storage.base import RedisValue
 from app.types.resp import Nil
-from app.types.resp.bulk_string import BulkString
 from app.types.resp.simple_string import SimpleString
 
 
@@ -25,17 +27,39 @@ class CommandSet(RedisCommand):
         parser = CommandArgParser()
         parser.add_argument("key", 0)
         parser.add_argument("value", 1)
-        parser.add_argument("expiry", 2, required=False)
-        parser.add_argument("expiry_value", 3, required=False)
+        parser.add_argument("expiry", 2, required=False, map_fn=lambda x: x.decode())
+        parser.add_argument(
+            "expiry_value", 3, required=False, map_fn=lambda x: x.decode()
+        )
 
         self.args = parser.parse_args(args_list)
 
     def exec(self, ctx: ExecutionContext) -> bytes:
         key, value = self.args["key"], self.args["value"]
+        expiry = self.calculate_key_expiry()
 
         try:
-            ctx.storage.set(key, value)
+            ctx.storage.set(key, RedisValue(value=value, expiry=expiry))
             return bytes(SimpleString(b"OK"))
         except Exception:  # currently an exception type is unknown
             # TODO: have a logger config to log exceptions
             return bytes(Nil)
+
+    def calculate_key_expiry(self) -> int | None:
+        # store expiry
+        expiry: str | None = self.args["expiry"]
+        expiry_value: str | None = self.args["expiry_value"]
+
+        current_millis = lambda: int(time() * 1000)
+        if expiry and expiry_value:
+            match expiry.upper():
+                case "EX":
+                    return current_millis() + int(expiry_value) * 1000
+                case "PX":
+                    return current_millis() + int(expiry_value)
+                case "EXAT":
+                    return int(expiry_value) * 1000
+                case "PXAT":
+                    return int(expiry_value)
+                case _:
+                    return None
