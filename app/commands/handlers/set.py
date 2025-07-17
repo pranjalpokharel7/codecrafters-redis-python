@@ -3,9 +3,9 @@ from time import time
 from app.context import ExecutionContext
 from app.commands.base import RedisCommand
 from app.commands.parser import CommandArgParser
-from app.storage.base import RedisValue
-from app.types.resp import Nil
-from app.types.resp.simple_string import SimpleString
+from app.storage.in_memory.base import RedisValue
+from app.resp.types import NIL
+from app.resp.types.simple_string import SimpleString
 
 
 class CommandSet(RedisCommand):
@@ -37,16 +37,15 @@ class CommandSet(RedisCommand):
 
     def exec(self, ctx: ExecutionContext) -> bytes:
         key, value = self.args["key"], self.args["value"]
-        expiry = self.calculate_key_expiry()
-
+        expiry = self._calculate_key_expiry()
         try:
             ctx.storage.set(key, RedisValue(value=value, expiry=expiry))
             return bytes(SimpleString(b"OK"))
         except Exception:  # currently an exception type is unknown
             # TODO: have a logger config to log exceptions
-            return bytes(Nil)
+            return NIL
 
-    def calculate_key_expiry(self) -> int | None:
+    def _calculate_key_expiry(self) -> int | None:
         # store expiry
         expiry: str | None = self.args["expiry"]
         expiry_value: str | None = self.args["expiry_value"]

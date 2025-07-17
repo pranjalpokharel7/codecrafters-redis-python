@@ -1,30 +1,11 @@
-from enum import IntEnum
-from io import BufferedReader, BytesIO
-
-from app.storage.base import RedisEncoding, RedisValue
+from app.storage.types import RedisEncoding, RedisValue
 from app.storage.rdb.errors import (
     InvalidMagicByte,
     InvalidVersionNumber,
     UnexpectedEOF,
     UnknownEncoding,
 )
-
-RDBReader = BufferedReader | BytesIO
-
-
-class LengthEncodingType(IntEnum):
-    """Flag that indicates the type of length encoding:
-
-    1. Length prefixed strings
-    2. An 8, 16 or 32 bit integer
-    3. A LZF compressed string
-
-    Based on the encoding type, the length encoded bytes can be further decoded.
-    """
-
-    STRING = 0
-    INTEGER = 1
-    COMPRESSED = 2
+from app.storage.types import LengthEncodingType, RDBReader
 
 
 class RDBParser:
@@ -47,35 +28,25 @@ class RDBParser:
             match opcode:
                 case 0xFA:
                     self._parse_auxiliary_field(reader)
-
                 case 0xFE:
                     self._parse_select_db(reader)
-
                 case 0xFB:
                     self._parse_resize_db(reader)
-
                 case 0xFD:
-                    expiry = (
-                        int.from_bytes(reader.read(4), "little") * 1000
-                    )  # milliseconds
+                    expiry = int.from_bytes(reader.read(4), "little") * 1000  # ms
                     self._parse_key_value(reader, expiry)
-
                 case 0xFC:
                     expiry = int.from_bytes(reader.read(8), "little")
                     self._parse_key_value(reader, expiry)
-
                 case 0xFF:
                     self.checksum = reader.read(8)
                     break  # EOF
-
                 case _:
                     # default case is to parse key-value pair
                     # opcode is the value type in this case
                     reader.seek(reader.tell() - 1)
                     self._parse_key_value(reader)
 
-    # should I make the buffered reader a part of the class?
-    # saves time from passing it as argument every time hmm
     def __init__(self, reader: RDBReader):
         """Parse binary RDB file to a dict (which can be used to populate
         RedisStorage?) - is assuming initialization by dict less of an abstraction?"""

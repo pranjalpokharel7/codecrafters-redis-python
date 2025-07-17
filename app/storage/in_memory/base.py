@@ -2,31 +2,7 @@
 a redis store."""
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from enum import IntEnum
-
-
-class RedisEncoding(IntEnum):
-    """One byte flag that indicates the encoding used to save bytes."""
-
-    STRING = 0
-    LIST = 1
-    SET = 2
-    ZSET = 3
-    HASH = 4
-    ZIPMAP = 9
-    ZIPLIST = 10
-    INTSET = 11
-    ZSET_ZIPLIST = 12
-    HASH_ZIPLIST = 13
-    LIST_QUICKLIST = 14
-
-
-@dataclass
-class RedisValue:
-    expiry: int | None  # unix timestamp when the key-value pair expires
-    value: bytes  # actual value in raw bytes
-    encoding: RedisEncoding = RedisEncoding.STRING # default string encoding
+from app.storage.types import RedisValue
 
 
 class RedisStorage(ABC):

@@ -1,6 +1,6 @@
 from app.commands.base import ExecutionContext, RedisCommand
 from app.commands.parser import CommandArgParser
-from app.types.resp import Array, BulkString
+from app.resp.types import Array, BulkString
 
 
 class CommandKeys(RedisCommand):

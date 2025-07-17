@@ -1,11 +1,10 @@
 from io import BytesIO
-from os import read
-from app.storage.rdb.parser import RDBParser, RDBReader
+from app.storage.rdb.parser import RDBParser
 from app.storage.rdb.errors import InvalidMagicByte, InvalidVersionNumber
-from app.storage.base import RedisEncoding
+from app.storage.types import RedisEncoding
 
 
-def get_rdb_reader(version=b"0003", body=b"", checksum=b"\x00" * 8) -> RDBReader:
+def get_rdb_reader(version=b"0003", body=b"", checksum=b"\x00" * 8):
     buffer = b"REDIS" + version + body + b"\xff" + checksum
     return BytesIO(buffer)
 

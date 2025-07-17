@@ -1,7 +1,7 @@
 from app.commands.base import RedisCommand
 from app.commands.parser import CommandArgParser
 from app.context import ExecutionContext
-from app.types import BulkString
+from app.resp import BulkString
 
 
 class CommandEcho(RedisCommand):

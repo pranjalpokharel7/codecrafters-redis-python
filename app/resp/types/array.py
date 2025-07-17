@@ -3,20 +3,20 @@ from typing import Union
 
 from typing_extensions import Self
 
-from app.types.parser import cr_parser
-from app.types.base import Deserializable, RESPType, Serializable
-from app.types.constants import (
+from app.resp.parser import cr_parser
+from app.resp.base import Deserializable, RESPType, Serializable
+from app.resp.constants import (
     SB_ARRAY,
     SB_BULK_STRING,
     SB_INTEGER,
     SB_SIMPLE_ERROR,
     SB_SIMPLE_STRING,
 )
-from app.types.errors import EmptyBuffer, InvalidStartingByte 
-from app.types.resp.bulk_string import BulkString
-from app.types.resp.integer import Integer
-from app.types.resp.simple_error import SimpleError
-from app.types.resp.simple_string import SimpleString
+from app.resp.errors import EmptyBuffer, InvalidStartingByte 
+from app.resp.types.bulk_string import BulkString
+from app.resp.types.integer import Integer
+from app.resp.types.simple_error import SimpleError
+from app.resp.types.simple_string import SimpleString
 
 
 @dataclass

@@ -1,5 +1,3 @@
-# TODO: should we move this to the parser/ directory?
-
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
 

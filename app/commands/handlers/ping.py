@@ -1,7 +1,7 @@
 from app.context import ExecutionContext
 from app.commands.base import RedisCommand
 from app.commands.parser import CommandArgParser
-from app.types.resp.bulk_string import BulkString
+from app.resp.types.bulk_string import BulkString
 
 
 class CommandPing(RedisCommand):

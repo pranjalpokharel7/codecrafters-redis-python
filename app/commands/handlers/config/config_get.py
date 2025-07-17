@@ -2,7 +2,7 @@ from dataclasses import asdict
 
 from app.commands.base import ExecutionContext, RedisCommand
 from app.commands.parser import CommandArgParser
-from app.types import Array, BulkString
+from app.resp import Array, BulkString
 
 
 class CommandConfigGet(RedisCommand):
@@ -32,12 +32,9 @@ class CommandConfigGet(RedisCommand):
         config_dict = asdict(ctx.config) # get config as dict for search
 
         for param in self.args["parameter"]:
-            # it is not necessarily a one-one match since glob patterns are supported, 
+            # it is not necessarily a one-one match since glob patterns are supported,
             # but it is out of scope for now
-            value = config_dict.get(param)
-
-            if value:  # only append if there is a match
-                array.append(BulkString(param.encode()))
-                array.append(BulkString(value.encode()))
+            if value := config_dict.get(param):
+                array.extend([BulkString(param.encode()), BulkString(value.encode())])
 
         return bytes(Array(value=array))

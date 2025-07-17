@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from app.storage.base import RedisStorage
+from app.storage.in_memory.base import RedisStorage
 from app.config import Config
 
 

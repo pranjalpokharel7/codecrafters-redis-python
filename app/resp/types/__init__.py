@@ -5,4 +5,4 @@ from .simple_error import SimpleError
 from .simple_string import SimpleString
 
 # type nil/null is simply an empty bulk string
-Nil = BulkString(b"")
+NIL = bytes(BulkString(b""))

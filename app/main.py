@@ -9,8 +9,8 @@ from app.context import ExecutionContext
 from app.logger import log
 from app.storage.in_memory import ThreadSafeStorage as Storage
 from app.storage.rdb import RDBParser
-from app.types.resp import resp_type_from_bytes
-from app.types.resp.simple_error import SimpleError
+from app.resp.types import resp_type_from_bytes
+from app.resp.types.simple_error import SimpleError
 from app.utils import load_from_rdb_file, parsed_input_to_command
 
 MAX_BUF_SIZE = 512  # this should be a config parameter

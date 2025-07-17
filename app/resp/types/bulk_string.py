@@ -2,9 +2,9 @@ from dataclasses import dataclass
 
 from typing_extensions import Self
 
-from app.types.base import Deserializable, RESPType, Serializable
-from app.types.constants import SB_BULK_STRING
-from app.types.parser import cr_parser
+from app.resp.base import Deserializable, RESPType, Serializable
+from app.resp.constants import SB_BULK_STRING
+from app.resp.parser import cr_parser
 
 
 @dataclass

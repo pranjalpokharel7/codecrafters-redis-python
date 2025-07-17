@@ -1,12 +1,12 @@
 import os
-from io import BufferedReader, BytesIO
+from io import BytesIO
 
 from app.commands import NAME_TO_COMMANDS_MAP
 from app.commands.base import RedisCommand
 from app.commands.errors import CommandEmpty, UnrecognizedCommand
 from app.logger import log
 from app.storage.rdb.parser import RDBParser
-from app.types.resp import Array, RespElement
+from app.resp.types import Array, RespElement
 
 
 def parsed_input_to_command(parsed_input: RespElement) -> RedisCommand:

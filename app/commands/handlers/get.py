@@ -2,8 +2,8 @@ from time import time
 
 from app.commands.base import ExecutionContext, RedisCommand
 from app.commands.parser import CommandArgParser
-from app.storage.errors import KeyDoesNotExist
-from app.types.resp import BulkString, Nil
+from app.storage.in_memory.errors import KeyDoesNotExist
+from app.resp.types import BulkString, NIL
 
 
 class CommandGet(RedisCommand):
@@ -25,14 +25,14 @@ class CommandGet(RedisCommand):
     def exec(self, ctx: ExecutionContext) -> bytes:
         key = self.args["key"]
         try:
-            res = ctx.storage.get(key)
-            value, expiry = res.value, res.expiry
+            rv = ctx.storage.get(key)
+            value, expiry = rv.value, rv.expiry
 
-            if expiry and expiry < int(time() * 1000):
+            if expiry and expiry < int(time() * 1000): # timestamp is stored in ms
                 ctx.storage.remove(key) # remove expired key
-                return bytes(Nil)
+                return NIL
 
             return bytes(BulkString(value))
 
         except KeyDoesNotExist:
-            return bytes(Nil)
+            return NIL

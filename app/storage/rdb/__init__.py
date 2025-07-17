@@ -1,1 +1,1 @@
-from .parser import RDBParser, RDBReader
+from .parser import RDBParser

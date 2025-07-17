@@ -9,8 +9,8 @@ mechanisms.
 import re
 import fnmatch
 
-from app.storage.base import RedisStorage, RedisValue
-from app.storage.errors import KeyDoesNotExist
+from app.storage.in_memory.base import RedisStorage, RedisValue
+from app.storage.in_memory.errors import KeyDoesNotExist
 
 
 class SimpleStorage(RedisStorage):
@@ -35,7 +35,7 @@ class SimpleStorage(RedisStorage):
     def keys(self, pattern: bytes | None = None) -> list[bytes]:
         if pattern:
             # we can't use fnmatch directly because keys are binary-safe
-            # i.e. they aren't always utf-8 encoded bytes (decoding can fail)
+            # i.e. they aren't lways utf-8 encoded bytes (decoding can fail)
             # decode if it affects performance and use fnmatch (?)
             pattern = fnmatch.translate(pattern.decode()).encode()  # sanitize pattern
             match_pattern = re.compile(pattern)  # compile for efficiency in reuse
