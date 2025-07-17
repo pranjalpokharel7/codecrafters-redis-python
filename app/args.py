@@ -16,4 +16,8 @@ def get_arg_parser():
         "--dbfilename", type=str, required=False, default=None, help="RDB file name"
     )
 
+    parser.add_argument(
+        "--port", type=int, required=False, default=6379, help="Port to run the redis server on"
+    )
+
     return parser

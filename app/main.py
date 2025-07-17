@@ -8,7 +8,6 @@ from app.config import Config
 from app.context import ExecutionContext
 from app.logger import log
 from app.storage.in_memory import ThreadSafeStorage as Storage
-from app.storage.rdb import RDBParser
 from app.resp.types import resp_type_from_bytes
 from app.resp.types.simple_error import SimpleError
 from app.utils import load_from_rdb_file, parsed_input_to_command
@@ -38,14 +37,13 @@ def handle_connection(client_socket: socket.socket, ctx: ExecutionContext):
 
 
 def main():
-    # start tcp server
-    port = 6379
-    server_socket = socket.create_server(("localhost", port), reuse_port=True)
-    log.info(f"started server at port: {port}")
-
     # parse arguments
     arg_parser = get_arg_parser()
     args = arg_parser.parse_args(sys.argv[1:])  # skip script name
+
+    # start tcp server
+    server_socket = socket.create_server(("localhost", args.port), reuse_port=True)
+    log.info(f"started server at port: {args.port}")
 
     # initialize config
     # TODO: implement a from_args() method
