@@ -71,7 +71,7 @@ class CommandArgParser:
 
             else:
                 if arg.required:
-                    raise MissingArgument(f"Missing at {arg.pos}: '{arg.name}'")
+                    raise MissingArgument(f"at position {arg.pos} - '{arg.name}'")
                 else:
                     # use default value for optional args
                     parsed_args[arg.name] = arg.default

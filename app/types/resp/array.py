@@ -12,7 +12,7 @@ from app.types.constants import (
     SB_SIMPLE_ERROR,
     SB_SIMPLE_STRING,
 )
-from app.types.errors import EmptyBuffer, InvalidStartingByte, UnexpectedEOF
+from app.types.errors import EmptyBuffer, InvalidStartingByte 
 from app.types.resp.bulk_string import BulkString
 from app.types.resp.integer import Integer
 from app.types.resp.simple_error import SimpleError
@@ -50,7 +50,7 @@ class Array(RESPType, Serializable, Deserializable):
         array = []
         for _ in range(count):
             if pos >= len(data):
-                raise UnexpectedEOF  # encountered end of buffer before parsing complete
+                raise EOFError("Unexpected EOF")# encountered end of buffer before parsing complete
 
             element, offset = resp_type_from_bytes(data, pos)
             array.append(element)

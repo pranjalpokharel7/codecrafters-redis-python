@@ -17,7 +17,7 @@ class RESPType(ABC):
         """Simple validation function for starting byte and overall binary
         string format."""
         if not cls.start_byte:
-            raise Exception(f"start_byte not set for class {cls.__name__}")
+            raise AttributeError(f"start_byte not set for class {cls.__name__}")
 
         if not data.startswith(cls.start_byte) or not data.endswith(b"\r\n"):
             raise ValueError(f"Invalid byte format for {cls.__name__}")

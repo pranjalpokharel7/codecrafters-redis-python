@@ -13,7 +13,3 @@ class EmptyBuffer(ParsingError):
     def __init__(self):
         super().__init__("tried to parse empty buffer")
 
-
-class UnexpectedEOF(ParsingError):
-    def __init__(self):
-        super().__init__("unexpected EOF while parsing")

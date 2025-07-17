@@ -3,6 +3,7 @@ import argparse
 
 def get_arg_parser():
     parser = argparse.ArgumentParser(description="Redis clone server options")
+
     parser.add_argument(
         "--dir",
         type=str,
@@ -10,7 +11,9 @@ def get_arg_parser():
         default=None,
         help="Directory to store dump files",
     )
+
     parser.add_argument(
         "--dbfilename", type=str, required=False, default=None, help="RDB file name"
     )
+
     return parser

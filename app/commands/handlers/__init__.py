@@ -7,3 +7,4 @@ from .get import CommandGet
 from .ping import CommandPing
 from .set import CommandSet
 from .config import CommandConfigGet
+from .keys import CommandKeys

@@ -1,3 +1,4 @@
+import os
 import socket  # noqa: F401
 import sys
 import threading
@@ -7,10 +8,12 @@ from app.config import Config
 from app.context import ExecutionContext
 from app.logger import log
 from app.storage.in_memory import ThreadSafeStorage as Storage
+from app.storage.rdb import RDBParser
 from app.types.resp import resp_type_from_bytes
-from app.utils import parsed_input_to_command
+from app.types.resp.simple_error import SimpleError
+from app.utils import load_from_rdb_file, parsed_input_to_command
 
-MAX_BUF_SIZE = 512
+MAX_BUF_SIZE = 512  # this should be a config parameter
 
 
 def handle_connection(client_socket: socket.socket, ctx: ExecutionContext):
@@ -28,11 +31,10 @@ def handle_connection(client_socket: socket.socket, ctx: ExecutionContext):
             client_socket.sendall(response)
 
     except BaseException as e:
-        # close connection on any exception that the thread can not recover from
-        log.error(f"encountered an error: {e}")
-        log.error("closing client connection")
+        # send error to client and close connection
+        client_socket.sendall(bytes(SimpleError(str(e).encode())))
         client_socket.close()
-        raise e # only for debugging 
+        log.exception(e)
 
 
 def main():
@@ -45,9 +47,17 @@ def main():
     arg_parser = get_arg_parser()
     args = arg_parser.parse_args(sys.argv[1:])  # skip script name
 
-    # initialize context
-    storage = Storage()
+    # initialize config
+    # TODO: implement a from_args() method
     config = Config(dir=args.dir, dbfilename=args.dbfilename)
+
+    # initialize storage
+    if config.dir and config.dbfilename:
+        path = os.path.join(config.dir, config.dbfilename)
+        storage = Storage(load_from_rdb_file(path))
+    else:
+        storage = Storage()
+
     execution_context = ExecutionContext(storage=storage, config=config)
 
     while True:

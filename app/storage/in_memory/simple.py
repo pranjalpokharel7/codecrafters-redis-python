@@ -6,20 +6,23 @@ provides basic set, get, and remove operations without locking
 mechanisms.
 """
 
-from typing import Any
+import re
+import fnmatch
 
-from app.storage.base import RedisStorage
+from app.storage.base import RedisStorage, RedisValue
 from app.storage.errors import KeyDoesNotExist
 
 
 class SimpleStorage(RedisStorage):
-    def __init__(self):
-        self.db = {}
+    db: dict[bytes, RedisValue]
 
-    def set(self, key: bytes, value: Any):
+    def __init__(self, db: dict | None = None):
+        self.db = db or {}  # optionally initialize with values
+
+    def set(self, key: bytes, value: RedisValue):
         self.db[key] = value
 
-    def get(self, key: bytes):
+    def get(self, key: bytes) -> RedisValue:
         value = self.db.get(key)
         if not value:
             raise KeyDoesNotExist(key)
@@ -28,3 +31,15 @@ class SimpleStorage(RedisStorage):
     def remove(self, key: bytes):
         if key in self.db:
             del self.db[key]
+
+    def keys(self, pattern: bytes | None = None) -> list[bytes]:
+        if pattern:
+            # we can't use fnmatch directly because keys are binary-safe
+            # i.e. they aren't always utf-8 encoded bytes (decoding can fail)
+            # decode if it affects performance and use fnmatch (?)
+            pattern = fnmatch.translate(pattern.decode()).encode()  # sanitize pattern
+            match_pattern = re.compile(pattern)  # compile for efficiency in reuse
+            return [k for k in self.db.keys() if match_pattern.fullmatch(k)]
+
+        # return entire list of keys
+        return list(self.db.keys())

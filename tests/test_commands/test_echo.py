@@ -7,11 +7,3 @@ def test_command_echo_returns_message():
     ctx = get_test_execution_context()
     result = cmd.exec(ctx)
     assert result == b"$5\r\nhello\r\n"
-
-
-# TODO: need to test in actual redis server to see what is returned
-# def test_command_echo_empty_message():
-#     cmd = CommandEcho([b""])
-#     ctx = get_test_execution_context()
-#     result = cmd.exec(ctx)
-#     assert result == b"$0\r\n\r\n"
