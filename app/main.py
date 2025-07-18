@@ -11,6 +11,7 @@ from app.storage.in_memory import ThreadSafeStorage as Storage
 from app.resp.types import resp_type_from_bytes
 from app.resp.types.simple_error import SimpleError
 from app.utils import load_from_rdb_file, parsed_input_to_command
+from app.info import Info
 
 MAX_BUF_SIZE = 512  # this should be a config parameter
 
@@ -56,7 +57,8 @@ def main():
     else:
         storage = Storage()
 
-    execution_context = ExecutionContext(storage=storage, config=config)
+    info = Info()
+    execution_context = ExecutionContext(storage=storage, config=config, info=info)
 
     while True:
         client_socket, address = server_socket.accept()  # wait for client

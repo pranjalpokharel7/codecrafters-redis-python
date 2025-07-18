@@ -8,6 +8,7 @@ NAME_TO_COMMANDS_MAP: dict[bytes, type[RedisCommand]] = {
     b"GET": CommandGet,
     b"SET": CommandSet,
     b"KEYS": CommandKeys,
+    b"INFO": CommandInfo,
 
     # CONFIG
     b"CONFIG GET": CommandConfigGet,
