@@ -7,35 +7,13 @@ from app.args import get_arg_parser
 from app.config import Config
 from app.context import ExecutionContext
 from app.info import Info
-from app.info.sections.replication import InfoReplication, ReplicationRole
+from app.info.sections.info_replication import InfoReplication, ReplicationRole
 from app.logger import log
-from app.resp.types import resp_type_from_bytes
-from app.resp.types.simple_error import SimpleError
+from app.replication.slave import ReplicaSlave
 from app.storage.in_memory import ThreadSafeStorage as Storage
-from app.utils import load_from_rdb_file, parsed_input_to_command
+from app.utils import handle_connection, load_from_rdb_file
 
 MAX_BUF_SIZE = 512  # this should be a config parameter
-
-
-def handle_connection(client_socket: socket.socket, ctx: ExecutionContext):
-    try:
-        while True:
-            buf = client_socket.recv(MAX_BUF_SIZE)
-            if not buf:  # empty buffer means client has disconnected
-                break
-
-            parsed_input, _ = resp_type_from_bytes(buf)
-            command = parsed_input_to_command(parsed_input)
-            response = command.exec(ctx)
-
-            log.info(f"sending response: {response}")
-            client_socket.sendall(response)
-
-    except BaseException as e:
-        # send error to client and close connection
-        client_socket.sendall(bytes(SimpleError(str(e).encode())))
-        client_socket.close()
-        log.exception(e)
 
 
 def main():
@@ -60,10 +38,19 @@ def main():
 
     # initialize info sections - extract them into a different function
     info_replication = InfoReplication()
-    if args.replicaof is not None:
-        info_replication.role = ReplicationRole.SLAVE
-    info = Info(info_replication)
 
+    # determines if server is running in slave/master replica mode
+    if replica := args.replicaof:
+        try:
+            replica = ReplicaSlave(
+                host=replica["host"], port=replica["port"], listening_port=args.port
+            )
+            replica.handshake()
+        except Exception as e:
+            log.error(f"failed to connect to master replica: {e}")
+        info_replication.role = ReplicationRole.SLAVE
+
+    info = Info(info_replication)
     execution_context = ExecutionContext(storage=storage, config=config, info=info)
 
     while True:

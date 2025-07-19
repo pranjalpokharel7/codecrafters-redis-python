@@ -6,11 +6,13 @@ provides basic set, get, and remove operations without locking
 mechanisms.
 """
 
-import re
 import fnmatch
+import re
+from time import time
+from typing import Callable
 
 from app.storage.in_memory.base import RedisStorage, RedisValue
-from app.storage.in_memory.errors import KeyDoesNotExist
+from app.storage.in_memory.errors import KeyDoesNotExist, KeyExpired
 
 
 class SimpleStorage(RedisStorage):
@@ -26,6 +28,13 @@ class SimpleStorage(RedisStorage):
         value = self.db.get(key)
         if not value:
             raise KeyDoesNotExist(key)
+
+        # check if value has expired
+        expiry = value.expiry
+        if expiry and expiry < int(time() * 1000):  # timestamp is stored in ms
+            del self.db[key]
+            raise KeyExpired(key)
+
         return value
 
     def remove(self, key: bytes):
@@ -43,3 +52,15 @@ class SimpleStorage(RedisStorage):
 
         # return entire list of keys
         return list(self.db.keys())
+
+    def update(self, key: bytes, fn: Callable[[RedisValue], RedisValue]) -> RedisValue:
+        """Applies an update function to a key's value.
+
+        Any error/exception raised as a result of calling the function
+        must be handled at the calling site.
+        """
+        # can't call other methods because of deadlock!
+        value = self.get(key)
+        updated = fn(value)
+        self.db[key] = updated
+        return updated

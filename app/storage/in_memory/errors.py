@@ -2,7 +2,7 @@
 operations."""
 
 
-class StorageError(BaseException):
+class StorageError(Exception):
     pass
 
 
@@ -12,5 +12,5 @@ class KeyDoesNotExist(StorageError):
 
 
 class KeyExpired(StorageError):
-    def __init__(self, key: str) -> None:
+    def __init__(self, key: bytes) -> None:
         super().__init__(f"key={key} expired")

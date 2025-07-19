@@ -2,7 +2,7 @@
 execution of a redis command."""
 
 
-class CommandError(BaseException):
+class CommandError(Exception):
     pass
 
 

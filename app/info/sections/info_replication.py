@@ -27,19 +27,9 @@ class InfoReplication(InfoSection):
     """
     Master/replica replication information.
     """
-
     title: str = "# Replication"
     role: ReplicationRole = ReplicationRole.MASTER  # role of the server
     connected_slaves: int = 0  # number of connected replicas
     master_replid: str = field(default_factory=replid)  # replication ID of the master
     master_repl_offset: int = 0  # replication offset of the master
 
-    def __bytes__(self) -> bytes:
-        # get all methods of this class, encode them as method:value
-        info = "# Replication\r\n"
-        for field in fields(self):
-            key = field.name
-            value = getattr(self, key)
-            info += f"{key}:{value}\r\n" # each line is a key-value pair
-        return info.encode()
-    

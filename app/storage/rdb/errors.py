@@ -1,4 +1,4 @@
-class RDBError(BaseException):
+class RDBError(Exception):
     pass
 
 

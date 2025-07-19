@@ -5,4 +5,4 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
 )
 
-log = logging.getLogger("codecrafters-redis-python")
+log = logging.getLogger("app")

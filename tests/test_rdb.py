@@ -46,7 +46,7 @@ def test_simple_string_kv():
     body = b"\x00" + b"\x03key" + b"\x05value"
     parser = RDBParser(get_rdb_reader(body=body))
     val = parser.db[b"key"]
-    assert val.value == b"value"
+    assert val.raw_bytes == b"value"
     assert val.encoding == RedisEncoding.STRING
     assert val.expiry is None
 
@@ -56,7 +56,7 @@ def test_kv_with_expiry_fd():
     parser = RDBParser(get_rdb_reader(body=body))
     val = parser.db[b"k"]
     assert val.expiry == 123000
-    assert val.value == b"value"
+    assert val.raw_bytes == b"value"
 
 
 def test_kv_with_expiry_fc():
@@ -64,7 +64,7 @@ def test_kv_with_expiry_fc():
     parser = RDBParser(get_rdb_reader(body=body))
     val = parser.db[b"a"]
     assert val.expiry == 456789
-    assert val.value == b"b"
+    assert val.raw_bytes == b"b"
 
 
 def test_checksum_stored():

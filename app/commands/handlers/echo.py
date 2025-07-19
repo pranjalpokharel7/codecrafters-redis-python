@@ -13,7 +13,7 @@ class CommandEcho(RedisCommand):
 
     args: dict = {}
 
-    def __init__(self, args_list: list):
+    def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()
         parser.add_argument("message", 0)
         self.args = parser.parse_args(args_list)

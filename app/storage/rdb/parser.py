@@ -131,7 +131,7 @@ class RDBParser:
 
         key = self._read_length_encoded_bytes(reader)[0]
         value, _ = self._read_length_encoded_bytes(reader)
-        self.db[key] = RedisValue(expiry=expiry, value=value, encoding=encoding)
+        self.db[key] = RedisValue(expiry=expiry, raw_bytes=value, encoding=encoding)
 
     def _parse_auxiliary_field(self, reader: RDBReader):
         """Parse auxiliary field key-values."""

@@ -22,8 +22,11 @@ class RedisEncoding(IntEnum):
 @dataclass
 class RedisValue:
     expiry: int | None  # unix timestamp when the key-value pair expires
-    value: bytes  # actual value in raw bytes
+    raw_bytes: bytes  # actual value in raw bytes (rename this to raw_bytes?)
     encoding: RedisEncoding = RedisEncoding.STRING  # default string encoding
+
+    def __bytes__(self):
+        return self.raw_bytes
 
 
 class LengthEncodingType(IntEnum):

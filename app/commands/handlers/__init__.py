@@ -9,3 +9,4 @@ from .set import CommandSet
 from .config import CommandConfigGet
 from .keys import CommandKeys
 from .info import CommandInfo
+from .incr import CommandIncr

@@ -20,7 +20,7 @@ class CommandKeys(RedisCommand):
 
     args: dict = {}
 
-    def __init__(self, args_list: list):
+    def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()
         parser.add_argument("pattern", 0)
         self.args = parser.parse_args(args_list)
@@ -29,3 +29,13 @@ class CommandKeys(RedisCommand):
         pattern = self.args["pattern"]
         keys = ctx.storage.keys(pattern)
         return bytes(Array([BulkString(k) for k in keys]))
+
+    def __bytes__(self) -> bytes:
+        return bytes(
+            Array(
+                [
+                    BulkString(b"KEYS"),
+                    BulkString(self.args["pattern"]),
+                ]
+            )
+        )

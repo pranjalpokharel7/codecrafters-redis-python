@@ -8,9 +8,12 @@ class InfoSection:
     title: str
 
     def __bytes__(self) -> bytes:
-        info = f"{self.title}\n"
+        info = f"{self.title}\r\n"
         for field in fields(self):
             key = field.name
+            if key == "title":
+                # do not re-encode title field
+                continue
             value = getattr(self, key)
-            info += f"{key}:{value}\n"
-        return bytes(BulkString(info.encode()))
+            info += f"{key}:{value}\r\n"
+        return info.encode()

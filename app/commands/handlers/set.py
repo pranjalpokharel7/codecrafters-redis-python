@@ -1,11 +1,14 @@
+import logging
 from time import time
 
-from app.context import ExecutionContext
 from app.commands.base import RedisCommand
 from app.commands.parser import CommandArgParser
-from app.storage.in_memory.base import RedisValue
+from app.context import ExecutionContext
 from app.resp.types import NIL
 from app.resp.types.simple_string import SimpleString
+from app.storage.in_memory.base import RedisValue
+
+log = logging.getLogger("app") # TODO: find a better solution to logging
 
 
 class CommandSet(RedisCommand):
@@ -24,7 +27,7 @@ class CommandSet(RedisCommand):
 
     args: dict = {}
 
-    def __init__(self, args_list: list):
+    def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()
         parser.add_argument("key", 0)
         parser.add_argument("value", 1)
@@ -39,10 +42,10 @@ class CommandSet(RedisCommand):
         key, value = self.args["key"], self.args["value"]
         expiry = self._calculate_key_expiry()
         try:
-            ctx.storage.set(key, RedisValue(value=value, expiry=expiry))
+            ctx.storage.set(key, RedisValue(raw_bytes=value, expiry=expiry))
             return bytes(SimpleString(b"OK"))
-        except Exception:  # currently an exception type is unknown
-            # TODO: have a logger config to log exceptions
+        except Exception as e:  # currently an exception type is unknown
+            log.error(f"Command SET - {e}")
             return NIL
 
     def _calculate_key_expiry(self) -> int | None:

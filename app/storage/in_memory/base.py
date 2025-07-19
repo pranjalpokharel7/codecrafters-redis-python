@@ -2,6 +2,7 @@
 a redis store."""
 
 from abc import ABC, abstractmethod
+from typing import Any, Callable
 from app.storage.types import RedisValue
 
 
@@ -28,4 +29,9 @@ class RedisStorage(ABC):
     @abstractmethod
     def keys(self, pattern: bytes | None = None) -> list[bytes]:
         """Returns all keys in the database that match the pattern."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def update(self, key: bytes, fn: Callable[[RedisValue], RedisValue]) -> RedisValue:
+        """Provide an update function that is applied to the key stored in the database."""
         raise NotImplementedError

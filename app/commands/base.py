@@ -25,3 +25,8 @@ class RedisCommand(ABC):
     def exec(self, ctx: ExecutionContext) -> bytes:
         """Execute command by passing in a global execution context."""
         raise NotImplementedError
+
+    def __bytes__(self) -> bytes:
+        """Serialize command to bytes which can be used to communicate with
+        another redis-server (for redis-client capabilities)."""
+        raise NotImplementedError

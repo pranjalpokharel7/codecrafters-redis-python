@@ -47,7 +47,7 @@ class CommandArgParser:
             )
         )
 
-    def parse_args(self, args_list: list) -> dict:
+    def parse_args(self, args_list: list[bytes]) -> dict:
         """Takes a list of arguments, validates them and labels each based on
         parsing rules."""
         parsed_args = {}

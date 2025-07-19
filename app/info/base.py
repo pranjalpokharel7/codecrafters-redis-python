@@ -1,7 +1,7 @@
 import threading
 from abc import ABC, abstractmethod
 
-from app.info.sections.replication import InfoReplication
+from app.info.sections.info_replication import InfoReplication
 from app.info.types import InfoSection
 
 
@@ -32,12 +32,12 @@ class Info:
 
     _sections: dict[str, InfoSection]
 
-    def __init__(self, replication: InfoReplication | None = None) -> None:
+    def __init__(self, info_replication: InfoReplication | None = None) -> None:
         self._lock = threading.Lock()  # required when we need to update the info
 
         # init with default values for now
         self._sections = {
-            "replication": replication or InfoReplication(),
+            "replication": info_replication or InfoReplication(),
         }
 
     def get_section(self, section_name: str) -> InfoSection:

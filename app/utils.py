@@ -1,12 +1,18 @@
 import os
+import socket
 from io import BytesIO
 
 from app.commands import NAME_TO_COMMANDS_MAP
 from app.commands.base import RedisCommand
 from app.commands.errors import CommandEmpty, UnrecognizedCommand
+from app.context import ExecutionContext
 from app.logger import log
-from app.storage.rdb.parser import RDBParser
 from app.resp.types import Array, RespElement
+from app.resp.types.array import resp_type_from_bytes
+from app.resp.types.simple_error import SimpleError
+from app.storage.rdb.parser import RDBParser
+
+MAX_BUF_SIZE = 512  # this should be a config parameter
 
 
 def parsed_input_to_command(parsed_input: RespElement) -> RedisCommand:
@@ -67,3 +73,24 @@ def load_from_rdb_file(path: str, read_threshold: int = 10 * 10 * 1024) -> dict:
     except FileNotFoundError:
         # ignore if backup file doesn't exist
         return {}
+
+
+def handle_connection(client_socket: socket.socket, ctx: ExecutionContext):
+    try:
+        while True:
+            buf = client_socket.recv(MAX_BUF_SIZE)
+            if not buf:  # empty buffer means client has disconnected
+                break
+
+            parsed_input, _ = resp_type_from_bytes(buf)
+            command = parsed_input_to_command(parsed_input)
+            response = command.exec(ctx)
+
+            log.info(f"sending response: {response}")
+            client_socket.sendall(response)
+
+    except Exception as e:
+        # send error to client and close connection
+        client_socket.sendall(bytes(SimpleError(str(e).encode())))
+        client_socket.close()
+        log.exception(e)

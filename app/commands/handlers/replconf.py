@@ -1,0 +1,35 @@
+from app.commands.base import RedisCommand
+from app.commands.parser import CommandArgParser
+from app.context import ExecutionContext
+from app.resp import BulkString
+from app.resp.types.array import Array
+
+
+class CommandReplConf(RedisCommand):
+    """The REPLCONF command is an internal command (it is not accessible by the
+    external redis-client). It is used by a Redis master to configure a
+    connected replica.
+
+    Syntax:
+        REPLCONF <conf-name> <conf-value>
+    """
+
+    args: dict = {}
+
+    def __init__(self, args_list: list[bytes]):
+        parser = CommandArgParser()
+        parser.add_argument("key", 0)
+        parser.add_argument("value", 1)
+        self.args = parser.parse_args(args_list)
+
+    def exec(self, ctx: ExecutionContext) -> bytes:
+        raise NotImplementedError
+
+    def __bytes__(self) -> bytes:
+        key, value = self.args["key"], self.args["value"]
+        array = [
+            BulkString(b"REPLCONF"),
+            BulkString(key),
+            BulkString(value),
+        ]
+        return bytes(Array(array))

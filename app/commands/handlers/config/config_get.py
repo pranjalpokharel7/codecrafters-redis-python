@@ -15,7 +15,7 @@ class CommandConfigGet(RedisCommand):
 
     args: dict = {}
 
-    def __init__(self, args_list: list):
+    def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()
         parser.add_argument(
             "parameter",
