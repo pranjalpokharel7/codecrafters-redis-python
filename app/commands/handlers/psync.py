@@ -1,8 +1,12 @@
+from typing import cast
+
 from app.commands.base import RedisCommand
 from app.commands.parser import CommandArgParser
 from app.context import ExecutionContext
+from app.info.sections.info_replication import InfoReplication
 from app.resp import BulkString
 from app.resp.types.array import Array
+from app.resp.types.simple_string import SimpleString
 
 
 class CommandPsync(RedisCommand):
@@ -22,8 +26,12 @@ class CommandPsync(RedisCommand):
         self.args = parser.parse_args(args_list)
 
     def exec(self, ctx: ExecutionContext) -> bytes:
-        # server side response for psync
-        raise NotImplementedError
+        replication = cast(InfoReplication, ctx.info.get_section("replication"))
+        return bytes(
+            SimpleString(
+                f"FULLRESYNC {replication.master_replid} {replication.master_repl_offset}".encode()
+            )
+        )
 
     def __bytes__(self) -> bytes:
         # client side request for psync

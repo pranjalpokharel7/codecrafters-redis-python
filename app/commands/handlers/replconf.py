@@ -3,6 +3,7 @@ from app.commands.parser import CommandArgParser
 from app.context import ExecutionContext
 from app.resp import BulkString
 from app.resp.types.array import Array
+from app.resp.types.simple_string import SimpleString
 
 
 class CommandReplConf(RedisCommand):
@@ -23,7 +24,7 @@ class CommandReplConf(RedisCommand):
         self.args = parser.parse_args(args_list)
 
     def exec(self, ctx: ExecutionContext) -> bytes:
-        raise NotImplementedError
+        return bytes(SimpleString(b"OK"))
 
     def __bytes__(self) -> bytes:
         key, value = self.args["key"], self.args["value"]

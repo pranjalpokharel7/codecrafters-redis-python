@@ -10,3 +10,5 @@ from .config import CommandConfigGet
 from .keys import CommandKeys
 from .info import CommandInfo
 from .incr import CommandIncr
+from .replconf import CommandReplConf
+from .psync import CommandPsync
