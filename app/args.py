@@ -17,7 +17,19 @@ def get_arg_parser():
     )
 
     parser.add_argument(
-        "--port", type=int, required=False, default=6379, help="Port to run the redis server on"
+        "--port",
+        type=int,
+        required=False,
+        default=6379,
+        help="Port to run the redis server on",
+    )
+
+    parser.add_argument(
+        "--replicaof",
+        type=str,
+        required=False,
+        default=None,
+        help="Specify master redis server to follow",
     )
 
     return parser

@@ -13,7 +13,9 @@
                 "--dir",
                 "./",
                 "--dbfilename",
-                "dumper.rdb"
+                "dumper.rdb",
+                "--replicaof",
+                "localhost 5000"
             ],
             "justMyCode": false
         },

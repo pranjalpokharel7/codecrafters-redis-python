@@ -1,7 +1,16 @@
-from abc import ABC, abstractmethod
+from dataclasses import dataclass, fields
+
+from app.resp.types.bulk_string import BulkString
 
 
-class InfoSection(ABC):
-    @abstractmethod
+@dataclass
+class InfoSection:
+    title: str
+
     def __bytes__(self) -> bytes:
-        raise NotImplementedError
+        info = f"{self.title}\n"
+        for field in fields(self):
+            key = field.name
+            value = getattr(self, key)
+            info += f"{key}:{value}\n"
+        return bytes(BulkString(info.encode()))

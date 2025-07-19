@@ -6,12 +6,13 @@ import threading
 from app.args import get_arg_parser
 from app.config import Config
 from app.context import ExecutionContext
+from app.info import Info
+from app.info.sections.replication import InfoReplication, ReplicationRole
 from app.logger import log
-from app.storage.in_memory import ThreadSafeStorage as Storage
 from app.resp.types import resp_type_from_bytes
 from app.resp.types.simple_error import SimpleError
+from app.storage.in_memory import ThreadSafeStorage as Storage
 from app.utils import load_from_rdb_file, parsed_input_to_command
-from app.info import Info
 
 MAX_BUF_SIZE = 512  # this should be a config parameter
 
@@ -57,7 +58,12 @@ def main():
     else:
         storage = Storage()
 
-    info = Info()
+    # initialize info sections - extract them into a different function
+    info_replication = InfoReplication()
+    if args.replicaof is not None:
+        info_replication.role = ReplicationRole.SLAVE
+    info = Info(info_replication)
+
     execution_context = ExecutionContext(storage=storage, config=config, info=info)
 
     while True:

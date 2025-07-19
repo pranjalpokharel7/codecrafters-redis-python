@@ -29,18 +29,12 @@ class CommandInfo(RedisCommand):
         self.args = parser.parse_args(args_list)
 
     def exec(self, ctx: ExecutionContext) -> bytes:
-        array = []
-
-        # when no section is provided as argument, we need to return the "default" section?
         if section_names := self.args["section"]:
             sections = ctx.info.get_sections(section_names)
         else:
+            # when no section is provided as argument, simply return all sections
             sections = ctx.info.get_all_sections()
 
-        for section in sections.values():
-            array.append(bytes(section))
+        info = b"".join(bytes(s) for s in sections.values())
+        return bytes(BulkString(info))
 
-        if array:
-            return bytes(Array(value=array)) if len(array) > 1 else bytes(array[0])
-        else:
-            return NIL
