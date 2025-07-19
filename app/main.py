@@ -16,6 +16,17 @@ from app.utils import handle_connection, load_from_rdb_file
 MAX_BUF_SIZE = 512  # this should be a config parameter
 
 
+def accept_client_connections(
+    server_socket: socket.socket, execution_context: ExecutionContext
+):
+    while True:
+        client_socket, address = server_socket.accept()
+        log.info(f"client connected: {address}")
+        threading.Thread(
+            target=handle_connection, args=(client_socket, execution_context)
+        ).start()
+
+
 def main():
     # parse arguments
     arg_parser = get_arg_parser()
@@ -41,6 +52,20 @@ def main():
 
     # determines if server is running in slave/master replica mode
     if replica := args.replicaof:
+        info_replication.role = ReplicationRole.SLAVE
+
+    info = Info(info_replication)
+    execution_context = ExecutionContext(storage=storage, config=config, info=info)
+
+    threading.Thread(
+        target=accept_client_connections, args=(server_socket, execution_context)
+    ).start()
+
+    # --- start handshake with master replica
+    # ideally we would want to set this up before client connections are established
+    # but the tester tries to invoke commands as soon as the handshake is completed
+    # which leads to race conditions
+    if info_replication.role == ReplicationRole.SLAVE:
         try:
             replica = ReplicaSlave(
                 host=replica["host"], port=replica["port"], listening_port=args.port
@@ -48,18 +73,6 @@ def main():
             replica.handshake()
         except Exception as e:
             log.error(f"failed to connect to master replica: {e}")
-        info_replication.role = ReplicationRole.SLAVE
-
-    info = Info(info_replication)
-    execution_context = ExecutionContext(storage=storage, config=config, info=info)
-
-    while True:
-        client_socket, address = server_socket.accept()  # wait for client
-        log.info(f"client connected: {address}")
-
-        threading.Thread(
-            target=handle_connection, args=(client_socket, execution_context)
-        ).start()
 
 
 if __name__ == "__main__":
