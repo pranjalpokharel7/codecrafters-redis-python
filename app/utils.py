@@ -86,8 +86,14 @@ def handle_connection(client_socket: socket.socket, ctx: ExecutionContext):
             command = parsed_input_to_command(parsed_input)
             response = command.exec(ctx)
 
-            log.info(f"sending response: {response}")
-            client_socket.sendall(response)
+            # commands like psync return multiple responses
+            if isinstance(response, list):
+                for res in response:
+                    log.info(f"sending response: {res}")
+                    client_socket.sendall(res)
+            else:
+                log.info(f"sending response: {response}")
+                client_socket.sendall(response)
 
     except Exception as e:
         # send error to client and close connection

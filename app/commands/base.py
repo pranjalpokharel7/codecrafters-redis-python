@@ -22,7 +22,9 @@ class RedisCommand(ABC):
     def __init__(self, args_list: list[bytes]):
         raise NotImplementedError
 
-    def exec(self, ctx: ExecutionContext) -> bytes:
+    # should we always return a list of bytes though?
+    # since we init using a list of bytes anyway?
+    def exec(self, ctx: ExecutionContext) -> list[bytes] | bytes:
         """Execute command by passing in a global execution context."""
         raise NotImplementedError
 

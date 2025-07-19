@@ -35,3 +35,8 @@ class RedisStorage(ABC):
     def update(self, key: bytes, fn: Callable[[RedisValue], RedisValue]) -> RedisValue:
         """Provide an update function that is applied to the key stored in the database."""
         raise NotImplementedError
+
+    @abstractmethod
+    def restore(self, db: dict[bytes, RedisValue]):
+        """Restore db contents."""
+        raise NotImplementedError

@@ -11,9 +11,8 @@ from app.info.sections.info_replication import InfoReplication, ReplicationRole
 from app.logger import log
 from app.replication.slave import ReplicaSlave
 from app.storage.in_memory import ThreadSafeStorage as Storage
+from app.storage.rdb import RDBManager
 from app.utils import handle_connection, load_from_rdb_file
-
-MAX_BUF_SIZE = 512  # this should be a config parameter
 
 
 def accept_client_connections(
@@ -55,7 +54,10 @@ def main():
         info_replication.role = ReplicationRole.SLAVE
 
     info = Info(info_replication)
-    execution_context = ExecutionContext(storage=storage, config=config, info=info)
+    rdb = RDBManager()
+    execution_context = ExecutionContext(
+        storage=storage, config=config, info=info, rdb=rdb
+    )
 
     threading.Thread(
         target=accept_client_connections, args=(server_socket, execution_context)

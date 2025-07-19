@@ -1,3 +1,4 @@
+from base64 import decode, encode
 from typing import cast
 
 from app.commands.base import RedisCommand
@@ -25,13 +26,16 @@ class CommandPsync(RedisCommand):
         parser.add_argument("offset", 1)
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext) -> bytes:
+    def exec(self, ctx: ExecutionContext) -> bytes | list[bytes]:
         replication = cast(InfoReplication, ctx.info.get_section("replication"))
-        return bytes(
+        ack = bytes(
             SimpleString(
                 f"FULLRESYNC {replication.master_replid} {replication.master_repl_offset}".encode()
             )
         )
+        snapshot = ctx.rdb.create_snapshot(ctx.storage)
+        db = f"${len(snapshot)}\r\n".encode() + snapshot
+        return [ack, db]
 
     def __bytes__(self) -> bytes:
         # client side request for psync
