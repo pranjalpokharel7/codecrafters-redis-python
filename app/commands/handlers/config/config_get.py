@@ -13,7 +13,8 @@ class CommandConfigGet(RedisCommand):
     CONFIG GET parameter [parameter ...]
     """
 
-    args: dict = {}
+    args: dict
+    sync: bool = False
 
     def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()

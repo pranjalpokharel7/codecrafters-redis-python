@@ -12,8 +12,7 @@ class InfoSection:
         for field in fields(self):
             key = field.name
             if key == "title":
-                # do not re-encode title field
-                continue
+                continue # do not re-encode title field
             value = getattr(self, key)
             info += f"{key}:{value}\r\n"
         return info.encode()

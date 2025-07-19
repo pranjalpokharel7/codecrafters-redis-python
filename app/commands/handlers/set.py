@@ -26,6 +26,7 @@ class CommandSet(RedisCommand):
     """
 
     args: dict = {}
+    sync: bool = True
 
     def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()

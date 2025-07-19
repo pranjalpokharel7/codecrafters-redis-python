@@ -17,6 +17,7 @@ from app.context import ExecutionContext
 
 class RedisCommand(ABC):
     args: dict  # arguments to the command, labeled as "argument name": "argument value"
+    sync: bool # flag to denote whether the command is propagated to replicas
 
     @abstractmethod
     def __init__(self, args_list: list[bytes]):

@@ -5,6 +5,7 @@ import threading
 
 from app.args import get_arg_parser
 from app.config import Config
+from app.connection import ConnectionPool
 from app.context import ExecutionContext
 from app.info import Info
 from app.info.sections.info_replication import InfoReplication, ReplicationRole
@@ -55,8 +56,9 @@ def main():
 
     info = Info(info_replication)
     rdb = RDBManager()
+    pool = ConnectionPool()
     execution_context = ExecutionContext(
-        storage=storage, config=config, info=info, rdb=rdb
+        storage=storage, config=config, info=info, rdb=rdb, pool=pool
     )
 
     threading.Thread(
@@ -73,6 +75,11 @@ def main():
                 host=replica["host"], port=replica["port"], listening_port=args.port
             )
             replica.handshake()
+            # keep connection alive in different thread
+            # TODO: abstract this as a listen to master method?
+            threading.Thread(
+                target=handle_connection, args=(replica.sock, execution_context)
+            ).start()
         except Exception as e:
             log.error(f"failed to connect to master replica: {e}")
 

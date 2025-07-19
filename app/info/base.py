@@ -1,7 +1,7 @@
 import threading
 from abc import ABC, abstractmethod
 
-from app.info.sections.info_replication import InfoReplication
+from app.info.sections.info_replication import InfoReplication, ReplicationRole
 from app.info.types import InfoSection
 
 
@@ -33,7 +33,9 @@ class Info:
     _sections: dict[str, InfoSection]
 
     def __init__(self, info_replication: InfoReplication | None = None) -> None:
-        self._lock = threading.Lock()  # required when we need to update the info
+        # required when we need to update the info
+        # unused for now since we aren't updating the info across threads
+        self._lock = threading.Lock() 
 
         # init with default values for now
         self._sections = {
@@ -41,20 +43,20 @@ class Info:
         }
 
     def get_section(self, section_name: str) -> InfoSection:
-        with self._lock:
-            section = self._sections.get(section_name)
-            if section is None:
-                raise ValueError(f"Unknown section: {section_name}")
-            return section
+        section = self._sections.get(section_name)
+        if section is None:
+            raise ValueError(f"Unknown section: {section_name}")
+        return section
 
     def get_sections(self, section_names: list[str]) -> dict[str, InfoSection]:
-        with self._lock:
-            return {
-                name: self._sections[name]
-                for name in section_names
-                if name in self._sections
-            }
+        return {
+            name: self._sections[name]
+            for name in section_names
+            if name in self._sections
+        }
 
     def get_all_sections(self) -> dict[str, InfoSection]:
-        with self._lock:
-            return self._sections
+        return self._sections
+
+    def server_role(self) -> ReplicationRole:
+        return getattr(self._sections["replication"], "role")

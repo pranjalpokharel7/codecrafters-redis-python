@@ -11,7 +11,8 @@ class CommandEcho(RedisCommand):
     ECHO message
     """
 
-    args: dict = {}
+    args: dict
+    sync: bool = False
 
     def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()

@@ -21,8 +21,11 @@ class ReplicaSlave:
     host: str
     port: int
 
-    # port we are listening to for incoming responses from master
+    # port used for logging purposes (out of scope for now)
     listening_port: int
+
+    # persistent connection to master replica
+    sock: socket.socket
 
     def __init__(self, host: str, port: int, listening_port: int):
         self.host = host
@@ -30,19 +33,19 @@ class ReplicaSlave:
         self.listening_port = listening_port
 
         # create a persistent TCP connection to master replica
-        self._sock = socket.create_connection((host, port))
+        self.sock = socket.create_connection((host, port))
 
     def send_command(self, command: RedisCommand) -> bytes:
         req = bytes(command)
         log.info(f"sending command to master replica: {req!r}")
-        self._sock.sendall(req)
+        self.sock.sendall(req)
         return self._recv_response()
 
     def _recv_response(self) -> bytes:
         buf = b""
         # should we just rely on recv working properly?
         while not buf.endswith(b"\r\n"):
-            buf += self._sock.recv(1024)
+            buf += self.sock.recv(1024)
         return buf
 
     def handshake(self):

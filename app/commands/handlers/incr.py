@@ -13,10 +13,11 @@ class CommandIncr(RedisCommand):
     not a string, because GET only handles string values.
 
     Syntax:
-      GET key
+      INCR key
     """
 
-    args: dict = {}
+    args: dict
+    sync: bool = True
 
     def _incr_value(self, value: RedisValue) -> RedisValue:
         incr = int(value.raw_bytes.decode()) + 1

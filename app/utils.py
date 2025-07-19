@@ -1,3 +1,4 @@
+import logging
 import os
 import socket
 from io import BytesIO
@@ -5,7 +6,9 @@ from io import BytesIO
 from app.commands import NAME_TO_COMMANDS_MAP
 from app.commands.base import RedisCommand
 from app.commands.errors import CommandEmpty, UnrecognizedCommand
+from app.commands.handlers.psync import CommandPsync
 from app.context import ExecutionContext
+from app.info.sections.info_replication import ReplicationRole
 from app.logger import log
 from app.resp.types import Array, RespElement
 from app.resp.types.array import resp_type_from_bytes
@@ -76,17 +79,32 @@ def load_from_rdb_file(path: str, read_threshold: int = 10 * 10 * 1024) -> dict:
 
 
 def handle_connection(client_socket: socket.socket, ctx: ExecutionContext):
+    # use hostname:port as unique id for socket (for now)
+    uid = f"{client_socket.getpeername()[0]}:{client_socket.getpeername()[1]}"
+
     try:
         while True:
             buf = client_socket.recv(MAX_BUF_SIZE)
             if not buf:  # empty buffer means client has disconnected
+                # remove connection from pool - but what is the uid???
+                ctx.pool.remove(uid)
                 break
 
             parsed_input, _ = resp_type_from_bytes(buf)
+            if isinstance(parsed_input, SimpleError):
+                # log client error and continue
+                logging.error(parsed_input)
+                continue
+
             command = parsed_input_to_command(parsed_input)
+            if ctx.info.server_role() == ReplicationRole.SLAVE and command.sync:
+                # write/sync commands are only executed by the master replica
+                continue
+
             response = command.exec(ctx)
 
             # commands like psync return multiple responses
+            # TODO: should we just configure all commands to return list?
             if isinstance(response, list):
                 for res in response:
                     log.info(f"sending response: {res}")
@@ -95,8 +113,24 @@ def handle_connection(client_socket: socket.socket, ctx: ExecutionContext):
                 log.info(f"sending response: {response}")
                 client_socket.sendall(response)
 
+            # if request is PSYNC, then it is a replication request
+            # and so we add the replica connection to the connection pool
+            # we don't store every other request since they're usually not persistent
+            if ctx.info.server_role() == ReplicationRole.MASTER:
+                if isinstance(command, CommandPsync):
+                    logging.info(f"saving replica connection: {uid}")
+                    ctx.pool.add(uid, client_socket)
+
+                # if the command is marked as "sync" i.e. send to other replicas
+                if command.sync:
+                    # forward serialized input as data to other replicas
+                    logging.info(f"sending {parsed_input} to replicas")
+                    ctx.pool.propagate(bytes(parsed_input))
+
+
     except Exception as e:
         # send error to client and close connection
         client_socket.sendall(bytes(SimpleError(str(e).encode())))
         client_socket.close()
+        ctx.pool.remove(uid)
         log.exception(e)
