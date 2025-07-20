@@ -25,13 +25,21 @@ class ReplicaSlave:
     # persistent connection to master replica
     sock: socket.socket
 
+    # internal buffer to parse incoming connections
+    buf: bytes
+
     def __init__(self, master_host: str, master_port: int, listening_port: int):
         self.master_host = master_host
         self.master_port = master_port
         self.listening_port = listening_port
+        self.buf = b""
 
         # create a persistent TCP connection to master replica
         self.sock = socket.create_connection((master_host, master_port))
+
+    def _assert_response(self, received: bytes, expected: bytes):
+        if received != expected:
+            raise HandshakeFailed(f"Handshake failed: {received!r}")
 
     def _send_command(self, command: RedisCommand) -> bytes:
         req = bytes(command)
@@ -39,37 +47,51 @@ class ReplicaSlave:
         self.sock.sendall(req)
         return self._recv_response()
 
+    def _read_exact_buffer_length(self, length: int) -> bytes:
+        result = self.buf[:length]
+        self.buf = self.buf[length:]
+        return result
+
     # TODO: each section should be parsed differently, compared to simply using recv
     def _recv_response(self) -> bytes:
-        return self.sock.recv(1024 * 4)
+        while True:
+            chunk = self.sock.recv(1024 * 4)
+            if not chunk:
+                raise HandshakeFailed("connection closed unexpectedly")
+
+            self.buf += chunk
+            pos = self.buf.find(b"\r\n")
+            if pos != -1:
+                return self._read_exact_buffer_length(pos + 2)
 
     def handshake(self):
-        """
-        Establish handshake with master replica.
-        """
+        """Establish handshake with master replica."""
         # send ping to master server
         res = self._send_command(CommandPing([]))
-        if res != b"+PONG\r\n":
-            raise HandshakeFailed(f"PING failed: {res!r}")
+        self._assert_response(res, b"+PONG\r\n")
 
         # send REPLCONF messages
         res = self._send_command(
             CommandReplConf([b"listening-port", str(self.listening_port).encode()])
         )
-        if res != b"+OK\r\n":
-            raise HandshakeFailed(f"REPLCONF listening_port failed: {res!r}")
+        self._assert_response(res, b"+OK\r\n")
 
         res = self._send_command(CommandReplConf([b"capa", b"psync2"]))
-        if res != b"+OK\r\n":
-            raise HandshakeFailed(f"REPLCONF capa failed: {res!r}")
+        self._assert_response(res, b"+OK\r\n")
 
         # Since this is the first time the replica is connecting to the master,
         # replication ID will be ? (a question mark) and offset will be -1
         res = self._send_command(CommandPsync([b"?", b"-1"]))
-        if res.endswith(b"\r\n"):
-            # TODO check length from first response, read length then, use cr parser
-            # this means we haven't received RDB file yet which doesn't end in carriage return - bit hackish for now but couldn't figure out the proper logic
-            _rdb = self._recv_response()
+
+        if self.buf.startswith(b"$"):  # buffer already contains rdb contents
+            pos = self.buf.find(b"\r\n")
+            length_buffer = self._read_exact_buffer_length(pos + 2)
+        else:
+            length_buffer = self._recv_response()
+
+        # skip starting byte and trailing carriage return
+        rdb_size = int(length_buffer[1:-2].decode())
+        _rdb_file = self._read_exact_buffer_length(rdb_size)
 
         logging.info("received RDB file")
 
