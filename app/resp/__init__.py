@@ -1,1 +1,1 @@
-from .types import Integer, BulkString, SimpleString, SimpleError, Array, resp_type_from_bytes
+from .types import Integer, BulkString, SimpleString, SimpleError, Array, bytes_to_resp

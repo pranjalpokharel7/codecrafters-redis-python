@@ -1,16 +1,14 @@
 import uuid
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field
 from enum import Enum
 
 from app.info.types import InfoSection
-from app.resp.types import Array, BulkString
 
 
 def replid() -> str:
     """Returns a unique replid."""
-    # Using uuids since we can have more confidence in non-collision (if there
-    # is a standard library or a specification to generate random replid we can
-    # follow that convention).
+    # Using uuids since we can have more confidence in non-collision (unless there
+    # is a standard library or a specification to generate random replid).
     return (uuid.uuid4().hex + uuid.uuid4().hex)[:40]
 
 

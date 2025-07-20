@@ -1,5 +1,5 @@
-"""This module defines all errors that are raised during redis storage
-operations."""
+"""Errors raised during in-memory Redis operations, including value access, key
+expiry, and validation."""
 
 
 class StorageException(Exception):

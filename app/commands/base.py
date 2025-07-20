@@ -1,23 +1,19 @@
-"""This file defines a redis command and it's execution environment.
-
-From the redis docs -
-"Clients send commands to a Redis server as an array of bulk strings.
-The first (and sometimes also the second) bulk string in the array is the
-command's name. Subsequent elements of the array are the arguments for the
-command.".
-
-Example: encoding of command - ECHO hey
-*2\r\n$4\r\nECHO\r\n$3\r\nhey\r\n
-"""
+"""This file defines the base class for redis commands."""
 
 from abc import ABC, abstractmethod
 
 from app.context import ExecutionContext
 
+# type for result of executing a command
+ExecutionResult = list[bytes] | bytes
+
 
 class RedisCommand(ABC):
+    """
+    Base class that exposes API for command handlers.
+    """
     args: dict  # arguments to the command, labeled as "argument name": "argument value"
-    sync: bool # flag to denote whether the command is propagated to replicas
+    sync: bool  # flag to denote whether the command is propagated to replicas
 
     @abstractmethod
     def __init__(self, args_list: list[bytes]):
@@ -25,7 +21,7 @@ class RedisCommand(ABC):
 
     # should we always return a list of bytes though?
     # since we init using a list of bytes anyway?
-    def exec(self, ctx: ExecutionContext) -> list[bytes] | bytes:
+    def exec(self, ctx: ExecutionContext) -> ExecutionResult:
         """Execute command by passing in a global execution context."""
         raise NotImplementedError
 

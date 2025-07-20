@@ -2,12 +2,12 @@ from dataclasses import dataclass
 from typing_extensions import Self
 
 from app.resp.parser import cr_parser
-from app.resp.base import RESPType, Deserializable, Serializable
+from app.resp.base import RESPType
 from app.resp.constants import SB_INTEGER
 
 
 @dataclass
-class Integer(RESPType, Serializable, Deserializable):
+class Integer(RESPType):
     value: bytes
     start_byte = SB_INTEGER
 

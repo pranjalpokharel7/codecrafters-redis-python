@@ -22,17 +22,9 @@ class RESPType(ABC):
         if not data.startswith(cls.start_byte) or not data.endswith(b"\r\n"):
             raise ValueError(f"Invalid byte format for {cls.__name__}")
 
-
-class Serializable(ABC):
-    """Base class for classes that require byte serialization."""
-
     @abstractmethod
     def __bytes__(self) -> bytes:
         raise NotImplementedError
-
-
-class Deserializable(ABC):
-    """Base class for classes that can be deserialized from bytes."""
 
     @classmethod
     @abstractmethod

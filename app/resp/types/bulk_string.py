@@ -2,13 +2,13 @@ from dataclasses import dataclass
 
 from typing_extensions import Self
 
-from app.resp.base import Deserializable, RESPType, Serializable
+from app.resp.base import RESPType
 from app.resp.constants import SB_BULK_STRING
 from app.resp.parser import cr_parser
 
 
 @dataclass
-class BulkString(RESPType, Serializable, Deserializable):
+class BulkString(RESPType):
     value: bytes  # bulk string can be non-utf8 data, store as binary
     start_byte = SB_BULK_STRING
 

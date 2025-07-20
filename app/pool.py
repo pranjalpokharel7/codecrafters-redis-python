@@ -6,6 +6,10 @@ from dataclasses import dataclass
 
 @dataclass
 class Connection:
+    """
+    Class used to represent a connection in the connection pool.
+    """
+
     uid: str  # unique id for the connection
     sock: socket.socket  # actual socket used for connection
 
@@ -27,8 +31,8 @@ class ConnectionPool:
 
     def add(self, uid: str, sock: socket.socket):
         with self._lock:
+            logging.info(f"saving connection {uid} to pool")
             self._pool[uid] = Connection(uid, sock)
-            print(self._pool)
 
     def remove(self, uid: str):
         with self._lock:
@@ -47,11 +51,9 @@ class ConnectionPool:
             connections = self._pool.values()
             for conn in connections:
                 try:
+                    logging.info(f"sending {data} to {conn.uid}")
                     conn.sock.sendall(data)
                 except Exception as e:
-                    # if encountered exception while sending data, 
-                    # close connection and remove from connections pool
                     logging.error(f"connection {conn.uid} removed from pool - {e}")
                     self._pool[conn.uid].sock.close()
                     del self._pool[conn.uid]
-                    

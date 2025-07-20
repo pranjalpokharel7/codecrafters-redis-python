@@ -1,6 +1,6 @@
 from dataclasses import asdict
 
-from app.commands.base import ExecutionContext, RedisCommand
+from app.commands.base import ExecutionContext, ExecutionResult, RedisCommand
 from app.commands.parser import CommandArgParser
 from app.resp import Array, BulkString
 
@@ -28,9 +28,9 @@ class CommandConfigGet(RedisCommand):
         )
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext) -> bytes:
+    def exec(self, ctx: ExecutionContext) -> ExecutionResult:
         array = []
-        config_dict = asdict(ctx.config) # get config as dict for search
+        config_dict = asdict(ctx.config)  # get config as dict for search
 
         for param in self.args["parameter"]:
             # it is not necessarily a one-one match since glob patterns are supported,

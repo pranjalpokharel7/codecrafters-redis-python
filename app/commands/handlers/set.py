@@ -1,15 +1,12 @@
 import logging
 from time import time
 
-from app.commands.base import RedisCommand
+from app.commands.base import ExecutionResult, RedisCommand
 from app.commands.parser import CommandArgParser
 from app.context import ExecutionContext
 from app.resp.types import NIL
 from app.resp.types.simple_string import SimpleString
 from app.storage.in_memory.base import RedisValue
-
-log = logging.getLogger("app") # TODO: find a better solution to logging
-
 
 class CommandSet(RedisCommand):
     """Set key to hold the string value. If key already holds a value, it is
@@ -39,14 +36,14 @@ class CommandSet(RedisCommand):
 
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext) -> bytes:
+    def exec(self, ctx: ExecutionContext) -> ExecutionResult:
         key, value = self.args["key"], self.args["value"]
         expiry = self._calculate_key_expiry()
         try:
             ctx.storage.set(key, RedisValue(raw_bytes=value, expiry=expiry))
             return bytes(SimpleString(b"OK"))
         except Exception as e:  # currently an exception type is unknown
-            log.error(f"Command SET - {e}")
+            logging.error(f"Command SET - {e}")
             return NIL
 
     def _calculate_key_expiry(self) -> int | None:

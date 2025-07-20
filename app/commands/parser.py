@@ -1,3 +1,5 @@
+"""This file defines logic for parsing arguments for redis command. The design choice is similar to the `argparse` library used for parsing command line arguments."""
+
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
@@ -71,7 +73,6 @@ class CommandArgParser:
                 if arg.required:
                     raise MissingArgument(f"at position {arg.pos} - '{arg.name}'")
                 else:
-                    # use default value for optional args
                     parsed_args[arg.name] = arg.default
 
         return parsed_args

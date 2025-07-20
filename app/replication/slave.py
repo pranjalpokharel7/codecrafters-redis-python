@@ -1,7 +1,7 @@
 """This file will contain logic to handle replica in slave mode.
 
 Notes:
-    - Slave replicas are for read only (write commands are disabled - SET??)
+    - Slave replicas are for read only
 """
 
 import logging
@@ -13,13 +13,11 @@ from app.commands.handlers.psync import CommandPsync
 from app.commands.handlers.replconf import CommandReplConf
 from app.replication.errors import HandshakeFailed
 
-log = logging.getLogger("app")
-
 
 class ReplicaSlave:
     # host and port of the master replica
-    host: str
-    port: int
+    master_host: str
+    master_port: int
 
     # port used for logging purposes (out of scope for now)
     listening_port: int
@@ -27,24 +25,28 @@ class ReplicaSlave:
     # persistent connection to master replica
     sock: socket.socket
 
-    def __init__(self, host: str, port: int, listening_port: int):
-        self.host = host
-        self.port = port
+    def __init__(self, master_host: str, master_port: int, listening_port: int):
+        self.master_host = master_host
+        self.master_port = master_port
         self.listening_port = listening_port
 
         # create a persistent TCP connection to master replica
-        self.sock = socket.create_connection((host, port))
+        self.sock = socket.create_connection((master_host, master_port))
 
     def _send_command(self, command: RedisCommand) -> bytes:
         req = bytes(command)
-        log.info(f"sending command to master replica: {req!r}")
+        logging.info(f"sending command to master replica: {req!r}")
         self.sock.sendall(req)
         return self._recv_response()
 
+    # TODO: each section should be parsed differently, compared to simply using recv
     def _recv_response(self) -> bytes:
         return self.sock.recv(1024 * 4)
 
     def handshake(self):
+        """
+        Establish handshake with master replica.
+        """
         # send ping to master server
         res = self._send_command(CommandPing([]))
         if res != b"+PONG\r\n":
@@ -65,10 +67,11 @@ class ReplicaSlave:
         # replication ID will be ? (a question mark) and offset will be -1
         res = self._send_command(CommandPsync([b"?", b"-1"]))
         if res.endswith(b"\r\n"):
-            # this means we haven't received RDB file yet which doesn't end in carriage return
-            rdb = self._recv_response()
-        
-        log.info("received RDB file")
+            # TODO check length from first response, read length then, use cr parser
+            # this means we haven't received RDB file yet which doesn't end in carriage return - bit hackish for now but couldn't figure out the proper logic
+            _rdb = self._recv_response()
+
+        logging.info("received RDB file")
 
         # skip handling response for now
-        log.info("completed handshake with master server")
+        logging.info("completed handshake with master server")

@@ -1,7 +1,6 @@
-from base64 import decode, encode
 from typing import cast
 
-from app.commands.base import RedisCommand
+from app.commands.base import ExecutionResult, RedisCommand
 from app.commands.parser import CommandArgParser
 from app.context import ExecutionContext
 from app.info.sections.info_replication import InfoReplication
@@ -27,7 +26,7 @@ class CommandPsync(RedisCommand):
         parser.add_argument("offset", 1)
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext) -> bytes | list[bytes]:
+    def exec(self, ctx: ExecutionContext) -> ExecutionResult:
         replication = cast(InfoReplication, ctx.info.get_section("replication"))
         ack = bytes(
             SimpleString(

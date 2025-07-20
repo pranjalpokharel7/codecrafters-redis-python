@@ -19,3 +19,7 @@ class MissingArgument(CommandError):
 class UnrecognizedCommand(CommandError):
     def __init__(self, command_name: bytes) -> None:
         super().__init__(f"unrecognized command: {command_name}")
+
+class MissingSubcommand(CommandError):
+    def __init__(self, command_name: bytes) -> None:
+        super().__init__(f"missing subcommand: {command_name} <subcommand>")

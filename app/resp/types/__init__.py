@@ -1,4 +1,4 @@
-from .array import Array, RespElement, resp_type_from_bytes
+from .array import Array, RespElement, bytes_to_resp
 from .bulk_string import BulkString
 from .integer import Integer
 from .simple_error import SimpleError

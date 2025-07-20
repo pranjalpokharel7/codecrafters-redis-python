@@ -3,6 +3,7 @@ a redis store."""
 
 from abc import ABC, abstractmethod
 from typing import Callable
+
 from app.storage.types import RedisValue
 
 
@@ -14,9 +15,7 @@ class RedisStorage(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def set(
-        self, key: bytes, value: RedisValue
-    ):  # should value be deserializable as well?
+    def set(self, key: bytes, value: RedisValue):
         """Set value for a key, rewrites existing contents if key exists
         already."""
         raise NotImplementedError
@@ -33,7 +32,8 @@ class RedisStorage(ABC):
 
     @abstractmethod
     def update(self, key: bytes, fn: Callable[[RedisValue], RedisValue]) -> RedisValue:
-        """Provide an update function that is applied to the key stored in the database."""
+        """Provide an update function that is applied to the key stored in the
+        database."""
         raise NotImplementedError
 
     @abstractmethod

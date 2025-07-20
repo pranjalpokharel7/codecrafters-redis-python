@@ -3,12 +3,12 @@ from dataclasses import dataclass
 from typing_extensions import Self
 
 from app.resp.parser import cr_parser
-from app.resp.base import Deserializable, RESPType, Serializable
+from app.resp.base import RESPType
 from app.resp.constants import SB_SIMPLE_ERROR
 
 
 @dataclass
-class SimpleError(RESPType, Serializable, Deserializable):
+class SimpleError(RESPType):
     value: bytes  # store as binary string to avoid unnecessary encoding/decoding
     start_byte = SB_SIMPLE_ERROR
 

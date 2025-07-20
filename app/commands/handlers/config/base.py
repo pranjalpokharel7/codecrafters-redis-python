@@ -1,0 +1,33 @@
+from app.commands.base import ExecutionContext, RedisCommand
+from app.commands.errors import MissingSubcommand, UnrecognizedCommand
+from app.commands.handlers.config.config_get import CommandConfigGet
+
+
+class CommandConfig(RedisCommand):
+    """This handler routes execution through an appropriate handler based on
+    the config subcommand provided.
+
+    Syntax:
+    CONFIG <subcommand>
+    """
+
+    args: dict
+    sync: bool = False
+    sub_commands: dict[bytes, type[RedisCommand]] = {b"GET": CommandConfigGet}
+    active_sub_command: RedisCommand | None = None
+
+    def __init__(self, args_list: list[bytes]):
+        if len(args_list) == 0:
+            raise MissingSubcommand(b"CONFIG")
+
+        sub_command_name = args_list[0]
+        if sub_command := self.sub_commands.get(sub_command_name):
+            self.active_sub_command = sub_command(args_list)
+        else:
+            raise UnrecognizedCommand(b"CONFIG " + sub_command_name)
+
+    def exec(self, ctx: ExecutionContext) -> list[bytes] | bytes:
+        if not self.active_sub_command:
+            raise MissingSubcommand(b"CONFIG")
+
+        return self.active_sub_command.exec(ctx)

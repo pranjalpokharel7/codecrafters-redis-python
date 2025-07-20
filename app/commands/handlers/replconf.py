@@ -1,4 +1,4 @@
-from app.commands.base import RedisCommand
+from app.commands.base import ExecutionResult, RedisCommand
 from app.commands.parser import CommandArgParser
 from app.context import ExecutionContext
 from app.resp import BulkString
@@ -24,7 +24,7 @@ class CommandReplConf(RedisCommand):
         parser.add_argument("value", 1)
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext) -> bytes:
+    def exec(self, ctx: ExecutionContext) -> ExecutionResult:
         return bytes(SimpleString(b"OK"))
 
     def __bytes__(self) -> bytes:

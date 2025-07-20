@@ -1,4 +1,4 @@
-from app.commands.base import ExecutionContext, RedisCommand
+from app.commands.base import ExecutionContext, ExecutionResult, RedisCommand
 from app.commands.parser import CommandArgParser
 from app.resp.types import Array, BulkString
 
@@ -26,7 +26,7 @@ class CommandKeys(RedisCommand):
         parser.add_argument("pattern", 0)
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext) -> bytes:
+    def exec(self, ctx: ExecutionContext) -> ExecutionResult:
         pattern = self.args["pattern"]
         keys = ctx.storage.keys(pattern)
         return bytes(Array([BulkString(k) for k in keys]))

@@ -3,6 +3,7 @@ from .handlers import *
 
 # map from command name in bytes to their constructor class
 NAME_TO_COMMANDS_MAP: dict[bytes, type[RedisCommand]] = {
+    b"CONFIG": CommandConfig,
     b"ECHO": CommandEcho,
     b"GET": CommandGet,
     b"INCR": CommandIncr,
@@ -12,7 +13,4 @@ NAME_TO_COMMANDS_MAP: dict[bytes, type[RedisCommand]] = {
     b"PSYNC": CommandPsync,
     b"REPLCONF": CommandReplConf,
     b"SET": CommandSet,
-
-    # CONFIG
-    b"CONFIG GET": CommandConfigGet,
 }

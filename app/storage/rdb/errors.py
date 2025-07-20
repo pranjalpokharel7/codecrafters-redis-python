@@ -1,4 +1,5 @@
 class RDBError(Exception):
+    """Base exception for all RDB parsing and serialization errors."""
     pass
 
 

@@ -1,5 +1,5 @@
 from app.context import ExecutionContext
-from app.commands.base import RedisCommand
+from app.commands.base import ExecutionResult, RedisCommand
 from app.commands.parser import CommandArgParser
 from app.resp.types.array import Array
 from app.resp.types.bulk_string import BulkString
@@ -22,7 +22,7 @@ class CommandPing(RedisCommand):
         parser.add_argument("message", 0, required=False, default=None)
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext) -> bytes:
+    def exec(self, ctx: ExecutionContext) -> ExecutionResult:
         if message := self.args["message"]:
             return bytes(BulkString(message))
         return bytes(SimpleString(b"PONG"))

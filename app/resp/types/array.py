@@ -4,7 +4,7 @@ from typing import Union
 from typing_extensions import Self
 
 from app.resp.parser import cr_parser
-from app.resp.base import Deserializable, RESPType, Serializable
+from app.resp.base import RESPType
 from app.resp.constants import (
     SB_ARRAY,
     SB_BULK_STRING,
@@ -20,7 +20,7 @@ from app.resp.types.simple_string import SimpleString
 
 
 @dataclass
-class Array(RESPType, Serializable, Deserializable):
+class Array(RESPType):
     value: list
     start_byte = SB_ARRAY
 
@@ -52,7 +52,7 @@ class Array(RESPType, Serializable, Deserializable):
             if pos >= len(data):
                 raise EOFError("Unexpected EOF")# encountered end of buffer before parsing complete
 
-            element, offset = resp_type_from_bytes(data, pos)
+            element, offset = bytes_to_resp(data, pos)
             array.append(element)
             pos += offset
 
@@ -63,8 +63,8 @@ class Array(RESPType, Serializable, Deserializable):
 RespElement = Union[Integer, BulkString, SimpleString, SimpleError, Array]
 
 
-def resp_type_from_bytes(data: bytes, pos: int = 0) -> tuple[RespElement, int]:
-    """Utility function that deserializes bytes to appropriate RESP type.
+def bytes_to_resp(data: bytes, pos: int = 0) -> tuple[RespElement, int]:
+    """Utility function that parses bytes to appropriate RESP type.
 
     Args:
         data (bytes): The byte buffer to deserialize.

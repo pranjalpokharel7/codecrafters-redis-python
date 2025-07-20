@@ -1,4 +1,4 @@
-from app.commands.base import ExecutionContext, RedisCommand
+from app.commands.base import ExecutionContext, ExecutionResult, RedisCommand
 from app.commands.parser import CommandArgParser
 from app.commands.handlers import CommandSet
 from app.resp.types.simple_error import SimpleError
@@ -29,7 +29,7 @@ class CommandIncr(RedisCommand):
         parser.add_argument("key", 0)
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext) -> bytes:
+    def exec(self, ctx: ExecutionContext) -> ExecutionResult:
         key = self.args["key"]
         try:
             value = ctx.storage.update(key, self._incr_value)

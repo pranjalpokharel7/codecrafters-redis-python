@@ -1,11 +1,38 @@
-from app.storage.types import RedisEncoding, RedisValue
+from dataclasses import dataclass
+from enum import IntEnum
+
 from app.storage.rdb.errors import (
     InvalidMagicByte,
     InvalidVersionNumber,
-    UnexpectedEOF,
     UnknownEncoding,
 )
-from app.storage.types import LengthEncodingType, RDBReader
+from app.storage.types import RDBReader, RedisEncoding, RedisValue
+
+
+@dataclass
+class ParsedRDB:
+    version: int  # redis version that created this file
+    aux: dict  # auxiliary field key-value pairs
+    db: dict[bytes, RedisValue]  # actual key-value pairs stored as per user commands
+    selectdb: int | None  # selected db number
+    checksum: bytes  # file checksum in bytes
+    db_ht_size: int | None = None  # size of the database hash table (if available)
+    exp_ht_size: int | None = None  # size of the expiry hash table (if available)
+
+
+class LengthEncodingType(IntEnum):
+    """Flag that indicates the type of length encoding:
+
+    1. Length prefixed strings
+    2. An 8, 16 or 32 bit integer
+    3. A LZF compressed string
+
+    Based on the encoding type, the length encoded bytes can be further decoded.
+    """
+
+    STRING = 0
+    INTEGER = 1
+    COMPRESSED = 2
 
 
 class RDBParser:
@@ -13,53 +40,61 @@ class RDBParser:
 
     version: int  # redis version that created this file
     aux: dict  # auxiliary field key-value pairs
-    selectdb: int  # db selected
+    selectdb: int | None  # db selected
     db_ht_size: int | None = None  # size of the database hash table (if available)
     exp_ht_size: int | None = None  # size of the expiry hash table (if available)
     db: dict[bytes, RedisValue]  # actual key-value pairs stored as per user commands
     checksum: bytes  # file checksum in bytes
 
-    def _parse_rdb(self, reader: RDBReader):
-        self._parse_header(reader)
+    def parse(self, reader: RDBReader) -> ParsedRDB:
+        """Parse binary RDB file to a structured ParsedRDB object."""
+        aux = {}
+        db = {}
+        selectdb = None
+        db_ht_size = None
+        exp_ht_size = None
+        checksum = b""
+
+        version = self._parse_header(reader)
 
         # parse until EOF is reached
         while True:
             opcode = reader.read(1)[0]
             match opcode:
                 case 0xFA:
-                    self._parse_auxiliary_field(reader)
+                    key, value = self._parse_auxiliary_field(reader)
+                    aux[key] = value
                 case 0xFE:
-                    self._parse_select_db(reader)
+                    selectdb = self._parse_select_db(reader)
                 case 0xFB:
-                    self._parse_resize_db(reader)
+                    db_ht_size, exp_ht_size = self._parse_resize_db(reader)
                 case 0xFD:
                     expiry = int.from_bytes(reader.read(4), "little") * 1000  # ms
-                    self._parse_key_value(reader, expiry)
+                    key, value = self._parse_key_value(reader, expiry)
+                    db[key] = value
                 case 0xFC:
                     expiry = int.from_bytes(reader.read(8), "little")
-                    self._parse_key_value(reader, expiry)
+                    key, value = self._parse_key_value(reader, expiry)
+                    db[key] = value
                 case 0xFF:
-                    self.checksum = reader.read(8)
+                    checksum = reader.read(8)
                     break  # EOF
                 case _:
                     # default case is to parse key-value pair
                     # opcode is the value type in this case
                     reader.seek(reader.tell() - 1)
-                    self._parse_key_value(reader)
+                    key, value = self._parse_key_value(reader)
+                    db[key] = value
 
-    def __init__(self, reader: RDBReader):
-        """Parse binary RDB file to a dict (which can be used to populate
-        RedisStorage?) - is assuming initialization by dict less of an abstraction?"""
-        # init fields - these can't be initialized at the class level
-        # because of shared memory space between classes
-        self.aux = {}
-        self.db = {}
-
-        try:
-            self._parse_rdb(reader)
-        except IndexError:
-            # index error means we encountered an unexpected EOF
-            raise UnexpectedEOF(reader.tell())
+        return ParsedRDB(
+            version=version,
+            db=db,
+            aux=aux,
+            selectdb=selectdb,
+            db_ht_size=db_ht_size,
+            exp_ht_size=exp_ht_size,
+            checksum=checksum,
+        )
 
     def _read_length_encoded_bytes(
         self, reader: RDBReader
@@ -97,14 +132,13 @@ class RDBParser:
                     "decoding compressed strings not supported (yet)"
                 )
             else:
-                # this is not length-prefixed encoding
                 raise UnknownEncoding(
                     "tried to parse bytes which is not length encoded"
                 )
 
         return reader.read(length), LengthEncodingType.STRING
 
-    def _parse_header(self, reader: RDBReader):
+    def _parse_header(self, reader: RDBReader) -> int:
         """Parses the header section of the RDB file and moves file pointer to
         the end of the header."""
         reader.seek(0)  # start from the beginning of the buffer
@@ -117,11 +151,15 @@ class RDBParser:
         # read version
         version = reader.read(4)
         try:
-            self.version = int(version.decode())  # read the version number
+            version = int(version.decode())  # read the version number
         except (UnicodeDecodeError, ValueError):
             raise InvalidVersionNumber(version)
 
-    def _parse_key_value(self, reader: RDBReader, expiry: int | None = None):
+        return version
+
+    def _parse_key_value(
+        self, reader: RDBReader, expiry: int | None = None
+    ) -> tuple[bytes, RedisValue]:
         """Parse key-value pair with optional expiry timestamp."""
         encoding = int.from_bytes(reader.read(1), "little")
         try:
@@ -130,16 +168,18 @@ class RDBParser:
             raise UnknownEncoding(f"{encoding} is not a valid value type")
 
         key = self._read_length_encoded_bytes(reader)[0]
-        value, _ = self._read_length_encoded_bytes(reader)
-        self.db[key] = RedisValue(expiry=expiry, raw_bytes=value, encoding=encoding)
+        value_raw_bytes, _ = self._read_length_encoded_bytes(reader)
+        return key, RedisValue(
+            expiry=expiry, raw_bytes=value_raw_bytes, encoding=encoding
+        )
 
-    def _parse_auxiliary_field(self, reader: RDBReader):
+    def _parse_auxiliary_field(self, reader: RDBReader) -> tuple[bytes, bytes]:
         """Parse auxiliary field key-values."""
         k = self._read_length_encoded_bytes(reader)[0]
         v, _ = self._read_length_encoded_bytes(reader)
-        self.aux[k] = v
+        return k, v
 
-    def _parse_select_db(self, reader: RDBReader):
+    def _parse_select_db(self, reader: RDBReader) -> int:
         """This function parses information specific to selecting database.
 
         A Redis instance can have multiple databases. A single byte 0xFE
@@ -147,10 +187,11 @@ class RDBParser:
         variable length field indicates the database number.
         """
         db_number, _ = self._read_length_encoded_bytes(reader)
-        self.selectdb = int.from_bytes(db_number, "little")
+        return int.from_bytes(db_number, "little")
 
-    def _parse_resize_db(self, reader: RDBReader):
+    def _parse_resize_db(self, reader: RDBReader) -> tuple[int, int]:
         """Parses resizedb information, which contains information about size
         of the hash table for the main keyspace and expires."""
-        self.db_ht_size = int.from_bytes(reader.read(1), "little")
-        self.exp_ht_size = int.from_bytes(reader.read(1), "little")
+        db_ht_size = int.from_bytes(reader.read(1), "little")
+        exp_ht_size = int.from_bytes(reader.read(1), "little")
+        return db_ht_size, exp_ht_size

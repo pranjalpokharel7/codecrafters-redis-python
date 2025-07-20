@@ -1,9 +1,6 @@
-from dataclasses import asdict, dataclass, is_dataclass
-
-from app.commands.base import ExecutionContext, RedisCommand
+from app.commands.base import ExecutionContext, ExecutionResult, RedisCommand
 from app.commands.parser import CommandArgParser
-from app.resp.types import NIL, BulkString
-from app.resp.types.array import Array
+from app.resp.types import BulkString
 
 
 class CommandInfo(RedisCommand):
@@ -29,7 +26,7 @@ class CommandInfo(RedisCommand):
         )
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext) -> bytes:
+    def exec(self, ctx: ExecutionContext) -> ExecutionResult:
         if section_names := self.args["section"]:
             sections = ctx.info.get_sections(section_names)
         else:

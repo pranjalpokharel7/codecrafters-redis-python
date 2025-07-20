@@ -1,14 +1,9 @@
 import threading
-from abc import ABC, abstractmethod
 
 from app.info.sections.info_replication import InfoReplication, ReplicationRole
 from app.info.types import InfoSection
 
 
-# it is yet to be decided how this class will be constructed?
-# for one, all nodes should have the same view of the information
-# so it should be a part of the execution context, but it also
-# must be something that can be changed on the fly (read/write)
 class Info:
     """This class will contain logic to retrieve information and statistics
     about the server, which are classified as follows.
@@ -35,7 +30,7 @@ class Info:
     def __init__(self, info_replication: InfoReplication | None = None) -> None:
         # required when we need to update the info
         # unused for now since we aren't updating the info across threads
-        self._lock = threading.Lock() 
+        self._lock = threading.Lock()
 
         # init with default values for now
         self._sections = {
@@ -60,3 +55,6 @@ class Info:
 
     def server_role(self) -> ReplicationRole:
         return getattr(self._sections["replication"], "role")
+    
+    def get_value(self, section_name: str, attr_name: str):
+        return getattr(self._sections[section_name], attr_name)

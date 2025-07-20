@@ -34,7 +34,9 @@ class RDBManager:
                 else:
                     reader = f
 
-                storage.restore(RDBParser(reader).db)
+                logging.info(f"restoring from rdb backup file: {path}")
+                parser = RDBParser()
+                storage.restore(parser.parse(reader).db)
 
         except FileNotFoundError:
             # ignore if backup file doesn't exist
@@ -47,8 +49,10 @@ class RDBManager:
 
     def create_snapshot(self, storage: RedisStorage) -> bytes:
         """Creates a snapshot of RDB serialized file from current in-memory db
-        contents."""
-        # currently simply returns an empty RDB file as required by the replication challenge
+        contents.
+
+        Currently returns a minimal placeholder RDB snapshot.
+        """
         # TODO: create a serializer for RDB file format (could be a separate module)
         empty_rdb = "UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog=="
         return base64.b64decode(empty_rdb)
