@@ -10,10 +10,14 @@
             "request": "launch",
             "module": "app.main",
             "args": [
-                "--dir",
-                "./",
-                "--dbfilename",
-                "dump.rdb",
+                // "--dir",
+                // "./",
+                // "--dbfilename",
+                // "dump.rdb",
+                "--port",
+                "5000",
+                "--replicaof",
+                "localhost 6379"
             ],
             "justMyCode": false
         },

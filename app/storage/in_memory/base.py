@@ -2,7 +2,7 @@
 a redis store."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Callable
+from typing import Callable
 from app.storage.types import RedisValue
 
 

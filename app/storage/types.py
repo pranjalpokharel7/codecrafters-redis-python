@@ -2,6 +2,8 @@ from enum import IntEnum
 from dataclasses import dataclass
 from io import BufferedReader, BytesIO
 
+# REFACTOR: should this be moved to specific files in in-memory and rdb folders?
+
 
 class RedisEncoding(IntEnum):
     """One byte flag that indicates the encoding used to save bytes."""

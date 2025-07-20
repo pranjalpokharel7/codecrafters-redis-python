@@ -6,7 +6,7 @@ mechanisms, making it suitable for multi-threaded contexts.
 
 import threading
 
-from app.storage.in_memory.base import RedisValue
+from app.storage.types import RedisValue
 from app.storage.in_memory.simple import SimpleStorage
 
 

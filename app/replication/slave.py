@@ -35,39 +35,40 @@ class ReplicaSlave:
         # create a persistent TCP connection to master replica
         self.sock = socket.create_connection((host, port))
 
-    def send_command(self, command: RedisCommand) -> bytes:
+    def _send_command(self, command: RedisCommand) -> bytes:
         req = bytes(command)
         log.info(f"sending command to master replica: {req!r}")
         self.sock.sendall(req)
         return self._recv_response()
 
     def _recv_response(self) -> bytes:
-        buf = b""
-        # should we just rely on recv working properly?
-        while not buf.endswith(b"\r\n"):
-            buf += self.sock.recv(1024)
-        return buf
+        return self.sock.recv(1024 * 4)
 
     def handshake(self):
         # send ping to master server
-        res = self.send_command(CommandPing([]))
+        res = self._send_command(CommandPing([]))
         if res != b"+PONG\r\n":
             raise HandshakeFailed(f"PING failed: {res!r}")
 
         # send REPLCONF messages
-        res = self.send_command(
+        res = self._send_command(
             CommandReplConf([b"listening-port", str(self.listening_port).encode()])
         )
         if res != b"+OK\r\n":
             raise HandshakeFailed(f"REPLCONF listening_port failed: {res!r}")
 
-        res = self.send_command(CommandReplConf([b"capa", b"psync2"]))
+        res = self._send_command(CommandReplConf([b"capa", b"psync2"]))
         if res != b"+OK\r\n":
             raise HandshakeFailed(f"REPLCONF capa failed: {res!r}")
 
         # Since this is the first time the replica is connecting to the master,
         # replication ID will be ? (a question mark) and offset will be -1
-        self.send_command(CommandPsync([b"?", b"-1"]))
+        res = self._send_command(CommandPsync([b"?", b"-1"]))
+        if res.endswith(b"\r\n"):
+            # this means we haven't received RDB file yet which doesn't end in carriage return
+            rdb = self._recv_response()
+        
+        log.info("received RDB file")
 
         # skip handling response for now
         log.info("completed handshake with master server")

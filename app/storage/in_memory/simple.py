@@ -11,7 +11,8 @@ import re
 from time import time
 from typing import Callable
 
-from app.storage.in_memory.base import RedisStorage, RedisValue
+from app.storage.types import RedisValue
+from app.storage.in_memory.base import RedisStorage
 from app.storage.in_memory.errors import InvalidKeyFormat, InvalidValueFormat, KeyDoesNotExist, KeyExpired
 
 

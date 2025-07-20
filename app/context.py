@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from app.connection import ConnectionPool
+from app.replication.pool import ConnectionPool
 from app.storage.in_memory.base import RedisStorage
 from app.config import Config
 from app.info import Info

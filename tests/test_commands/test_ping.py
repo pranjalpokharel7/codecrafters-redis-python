@@ -5,7 +5,7 @@ def test_command_ping_default():
     cmd = CommandPing([])
     ctx = get_test_execution_context()
     result = cmd.exec(ctx)
-    assert result == b"$4\r\nPONG\r\n"
+    assert result == b"+PONG\r\n"
 
 def test_command_ping_with_message():
     cmd = CommandPing([b"hello"])

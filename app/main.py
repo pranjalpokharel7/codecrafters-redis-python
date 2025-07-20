@@ -5,15 +5,16 @@ import threading
 
 from app.args import get_arg_parser
 from app.config import Config
-from app.connection import ConnectionPool
 from app.context import ExecutionContext
 from app.info import Info
 from app.info.sections.info_replication import InfoReplication, ReplicationRole
 from app.logger import log
+from app.replication.pool import ConnectionPool
 from app.replication.slave import ReplicaSlave
 from app.storage.in_memory import ThreadSafeStorage as Storage
 from app.storage.rdb import RDBManager
-from app.utils import handle_connection, load_from_rdb_file
+from app.utils.connection import handle_connection, handle_connection_to_master_replica
+from app.utils.io import load_from_rdb_file
 
 
 def accept_client_connections(
@@ -37,7 +38,6 @@ def main():
     log.info(f"started server at port: {args.port}")
 
     # initialize config
-    # TODO: implement a from_args() method
     config = Config(dir=args.dir, dbfilename=args.dbfilename)
 
     # initialize storage
@@ -69,19 +69,13 @@ def main():
     # ideally we would want to set this up before client connections are established
     # but the tester tries to invoke commands as soon as the handshake is completed
     # which leads to race conditions
-    if info_replication.role == ReplicationRole.SLAVE:
-        try:
-            replica = ReplicaSlave(
-                host=replica["host"], port=replica["port"], listening_port=args.port
-            )
-            replica.handshake()
-            # keep connection alive in different thread
-            # TODO: abstract this as a listen to master method?
-            threading.Thread(
-                target=handle_connection, args=(replica.sock, execution_context)
-            ).start()
-        except Exception as e:
-            log.error(f"failed to connect to master replica: {e}")
+    if replica:
+        handle_connection_to_master_replica(
+            master_host=replica["host"],
+            master_port=replica["port"],
+            listening_port=args.port,
+            execution_context=execution_context,
+        )
 
 
 if __name__ == "__main__":

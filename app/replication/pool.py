@@ -33,7 +33,7 @@ class ConnectionPool:
     def remove(self, uid: str):
         with self._lock:
             if uid in self._pool:
-                # close() won't raise an error even if socket is already closed
+                logging.error(f"connection {uid} removed from pool")
                 self._pool[uid].sock.close()
                 del self._pool[uid]
 
