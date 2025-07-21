@@ -65,7 +65,7 @@ def _process_and_update_buffer(
             logging.error(str(e))
             continue
 
-        if not (replication_connection or isinstance(command, CommandReplConf)):
+        if not replication_connection or isinstance(command, CommandReplConf):
             _send_response(client_socket, response)
 
         # Only PSYNC requests need persistent connection tracking (replication setup).
