@@ -26,7 +26,7 @@ def connect_to_master_replica(
         # all propagated commands from master will be listened to by this thread
         threading.Thread(
             target=handle_connection,
-            args=(replica.sock, execution_context, replica.buf, False),
+            args=(replica.sock, execution_context, replica.buf, True),
         ).start()
 
     except Exception as e:
