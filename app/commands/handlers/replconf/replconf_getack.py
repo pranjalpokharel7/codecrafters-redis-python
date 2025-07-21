@@ -23,12 +23,13 @@ class CommandReplConfGetACK(RedisCommand):
 
     def exec(self, ctx: ExecutionContext) -> ExecutionResult:
         # hardcoded response for now
+        current_offset = ctx.info.get_offset()
         return bytes(
             Array(
                 [
                     BulkString(b"REPLCONF"),
                     BulkString(b"ACK"),
-                    BulkString(b"0"),
+                    BulkString(f"{current_offset}".encode()),
                 ]
             )
         )

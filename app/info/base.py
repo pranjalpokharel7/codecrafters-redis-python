@@ -29,7 +29,6 @@ class Info:
 
     def __init__(self, info_replication: InfoReplication | None = None) -> None:
         # required when we need to update the info
-        # unused for now since we aren't updating the info across threads
         self._lock = threading.Lock()
 
         # init with default values for now
@@ -38,23 +37,41 @@ class Info:
         }
 
     def get_section(self, section_name: str) -> InfoSection:
-        section = self._sections.get(section_name)
-        if section is None:
-            raise ValueError(f"Unknown section: {section_name}")
-        return section
+        with self._lock:
+            section = self._sections.get(section_name)
+            if section is None:
+                raise ValueError(f"Unknown section: {section_name}")
+            return section
 
     def get_sections(self, section_names: list[str]) -> dict[str, InfoSection]:
-        return {
-            name: self._sections[name]
-            for name in section_names
-            if name in self._sections
-        }
+        with self._lock:
+            return {
+                name: self._sections[name]
+                for name in section_names
+                if name in self._sections
+            }
 
     def get_all_sections(self) -> dict[str, InfoSection]:
-        return self._sections
+        with self._lock:
+            return self._sections
 
     def server_role(self) -> ReplicationRole:
-        return getattr(self._sections["replication"], "role")
-    
+        with self._lock:
+            return getattr(self._sections["replication"], "role")
+
+    def get_offset(self) -> int:
+        with self._lock:
+            return getattr(self._sections["replication"], "master_repl_offset")
+
+    def add_to_offset(self, delta: int) -> int:
+        with self._lock:
+            current_offset = getattr(
+                self._sections["replication"], "master_repl_offset"
+            )
+            updated_offset = current_offset + delta
+            setattr(self._sections["replication"], "master_repl_offset", updated_offset)
+            return updated_offset
+
     def get_value(self, section_name: str, attr_name: str):
-        return getattr(self._sections[section_name], attr_name)
+        with self._lock:
+            return getattr(self._sections[section_name], attr_name)

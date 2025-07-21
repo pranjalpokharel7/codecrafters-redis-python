@@ -34,9 +34,10 @@ def _process_and_update_buffer(
     connection_uid: str,
     client_socket: socket.socket,
     ctx: ExecutionContext,
-    respond: bool = True,
+    replication_connection: bool = False,
 ) -> bytes:
-    """Processes recv buffer and returns the updated buffer with remaining unparsed elements (if any)."""
+    """Processes recv buffer and returns the updated buffer with remaining
+    unparsed elements (if any)."""
     # keep on processing while buffer is not empty then return
     while buf:
         try:
@@ -64,7 +65,7 @@ def _process_and_update_buffer(
             logging.error(str(e))
             continue
 
-        if respond or isinstance(command, CommandReplConf):
+        if not (replication_connection or isinstance(command, CommandReplConf)):
             _send_response(client_socket, response)
 
         # Only PSYNC requests need persistent connection tracking (replication setup).
@@ -76,6 +77,11 @@ def _process_and_update_buffer(
             # if the command is marked as "sync" i.e. send to other replicas
             if command.sync:
                 ctx.pool.propagate(bytes(resp_element))
+        else:
+            # update local offset i.e. number of bytes processed 
+            # if this is master-replica connection
+            if replication_connection:
+                ctx.info.add_to_offset(pos)
 
     return buf
 
@@ -84,14 +90,15 @@ def handle_connection(
     client_socket: socket.socket,
     ctx: ExecutionContext,
     buf: bytes | None = None,
-    respond: bool = True,
+    replication_connection: bool = False,
 ):
     """Handles communication with a client socket once connection is
     established.
 
     buf: (optional) provide an initial buffer that contains unprocessed input
-    respond: if set to False, the server will simply process the command and will not respond
-             (False for communication between master-slave replica)
+    replication_connection: if set to True, this is a replica-master connection
+                            and is differently by the implementation as compared
+                            to client connections
     """
     # use hostname:port as unique id for socket (for now)
     uid = f"{client_socket.getpeername()[0]}:{client_socket.getpeername()[1]}"
@@ -99,7 +106,9 @@ def handle_connection(
 
     # pre-process buffer if it isn't empty
     if buf:
-        buf = _process_and_update_buffer(buf, uid, client_socket, ctx, respond)
+        buf = _process_and_update_buffer(
+            buf, uid, client_socket, ctx, replication_connection
+        )
 
     try:
         while True:
@@ -107,10 +116,12 @@ def handle_connection(
             if not chunk:  # empty buffer means client has disconnected
                 break
 
-            buf += chunk # add received chunk to buffer
+            buf += chunk  # add received chunk to buffer
 
             # process and update buffer
-            buf = _process_and_update_buffer(buf, uid, client_socket, ctx, respond)
+            buf = _process_and_update_buffer(
+                buf, uid, client_socket, ctx, replication_connection
+            )
 
     except Exception as e:
         logging.exception(str(e))
