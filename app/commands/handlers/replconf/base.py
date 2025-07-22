@@ -1,5 +1,6 @@
 from app.commands.base import ExecutionResult, RedisCommand
 from app.commands.handlers.replconf.replconf_getack import CommandReplConfGetACK
+from app.commands.handlers.replconf.replconf_ack import CommandReplConfACK
 from app.commands.parser import CommandArgParser
 from app.context import ExecutionContext
 from app.resp import BulkString
@@ -27,7 +28,10 @@ class CommandReplConf(RedisCommand):
 
     def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
         if self.args["key"].upper() == b"GETACK":
-            return CommandReplConfGetACK([self.args["value"]]).exec(ctx)
+            return CommandReplConfGetACK([self.args["value"]]).exec(ctx, **kwargs)
+        
+        if self.args["key"].upper() == b"ACK":
+            return CommandReplConfACK([self.args["value"]]).exec(ctx, **kwargs)
 
         return bytes(SimpleString(b"OK"))
 

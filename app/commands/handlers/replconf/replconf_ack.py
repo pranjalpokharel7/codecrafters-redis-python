@@ -6,7 +6,7 @@ from app.resp import BulkString
 from app.resp.types.array import Array
 
 
-class CommandReplConfGetACK(RedisCommand):
+class CommandReplConfACK(RedisCommand):
     """The REPLCONF ACK is an internal command used by master to track which
     replicas got the last write. This is sent by each replica to the master on
     processing the most recent propagated command.
@@ -28,18 +28,13 @@ class CommandReplConfGetACK(RedisCommand):
             offset = self.args["offset"]
             connection_uid = kwargs.get("connection_uid")
             if connection_uid:
-                # locks shouldn't be an issue here
-                # since each replica only communicates
-                # with the same connection uid
-                conn = ctx.pool.get(connection_uid)
-                if conn:
-                    conn.last_ack_offset = offset
+                ctx.pool.update_last_ack_offset(connection_uid, offset)
 
         except Exception:
             pass  # ignore bad ACKs
 
         finally:
-            return b""  # TODO: should be instead send None?
+            return None
 
     def __bytes__(self) -> bytes:
         array = [

@@ -18,11 +18,7 @@ MAX_BUF_SIZE = 512  # this should be a config parameter
 
 
 def _send_response(client_socket: socket.socket, response: ExecutionResult):
-    """Helper function to send response to a client socket.
-
-    Need an abstraction because we haven't finalized the exact response
-    type for now.
-    """
+    """Helper function to send response to a client socket."""
     # commands like psync return multiple responses
     if isinstance(response, list):
         for res in response:
@@ -40,21 +36,26 @@ def _handle_wait(
     ctx: ExecutionContext,
 ) -> int:
     master_offset = ctx.info.get_offset()
-    start = int(time() * 1000)
+    start = int(
+        time() * 1000
+    )  # TODO: this start time needs to be from the start of receiving client socket
 
     # loop until waiting condition is fulfilled
     while True:
+        if ctx.pool.acked_replicas(master_offset) >= acks_required:
+            break
+
         current = int(time() * 1000)
         if current - start >= timeout:
             break
 
-        if ctx.pool.acked_replicas(master_offset) >= acks_required:
-            break
-
         # poll replicas for their latest offset
-        ctx.pool.send_getack(master_offset)
+        threading.Thread(
+            target=ctx.pool.send_getack,
+            args=(master_offset,),
+        ).start()
 
-        sleep(0.01)  # throttle loop
+        sleep(0.02)  # throttle loop by 20ms
 
     count = ctx.pool.acked_replicas(master_offset)
     return count
@@ -62,43 +63,43 @@ def _handle_wait(
 
 def _handle_replication_logic(
     command: RedisCommand,
-    offset: int,
     propagation_bytes: bytes,
     connection_uid: str,
     client_socket: socket.socket,
     ctx: ExecutionContext,
     replication_connection: bool = False,
 ):
-    # Only PSYNC requests need persistent connection tracking (replication setup).
-    # Other commands are stateless and handled per-request.
+    offset = len(propagation_bytes)
     if ctx.info.server_role() == ReplicationRole.MASTER:
         if isinstance(command, CommandPsync):
             ctx.pool.add(connection_uid, client_socket)
 
         # wait execution of thread until we receive acknowledgement
         # from numreplicas or encounter timeout while waiting
-        if isinstance(command, CommandWait):
-            acks_required = command.args["numreplicas"]
-            timeout = command.args["timeout"]
+        elif isinstance(command, CommandWait):
+            acks_required, timeout = (
+                command.args["numreplicas"],
+                command.args["timeout"],
+            )
             replicas_in_sync = _handle_wait(acks_required, timeout, ctx)
             _send_response(
                 client_socket, bytes(Integer(str(replicas_in_sync).encode()))
             )
 
         # propagate write commands to other replicas
-        if command.write:
+        elif command.write:
             # send messages to replicas in a background thread (non-blocking)
             threading.Thread(
                 target=ctx.pool.propagate,
                 args=(propagation_bytes,),
             ).start()
 
-            # master connection with a write command - update offset?
-            if not replication_connection:
-                ctx.info.add_to_offset(offset)
+            # offset that increments for every byte of replication stream that it is produced to be sent to replicas
+            logging.info(f"adding {offset} to master offset count")
+            ctx.info.add_to_offset(offset)
     else:
-        # update local offset i.e. number of bytes processed
-        # if this is master-replica connection
+        # for slave, update offset on write commands received from master
+        # how do slaves update their offset?
         if replication_connection:
             ctx.info.add_to_offset(offset)
 
@@ -147,7 +148,6 @@ def _process_and_update_buffer(
         # handle logic related to replication and server roles
         _handle_replication_logic(
             command,
-            pos,
             bytes(resp_element),
             connection_uid,
             client_socket,

@@ -12,6 +12,7 @@ class Connection:
     uid: str  # unique id for the connection
     sock: socket.socket  # actual socket used for connection
     last_ack_offset: int = 0  # track the last acknowledged offset (for replica)
+    awaiting_ack_offset: int | None = None  # time since waiting for an ack of offset
 
 
 class ConnectionPool:
@@ -27,7 +28,7 @@ class ConnectionPool:
 
     def __init__(self) -> None:
         self._pool = {}
-        self._lock = threading.Lock()  # required when we need to update the info
+        self._lock = threading.RLock()  # required when we need to update the info
 
     def add(self, uid: str, sock: socket.socket):
         with self._lock:
@@ -46,15 +47,32 @@ class ConnectionPool:
             return self._pool.get(uid)
 
     def send_getack(self, min_offset: int):
-        payload = b"*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n"
-        with self._lock:
+        get_ack = b"*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n"
+        ack_wait_for_ms = 200
+        with self._lock:  # i don't think we need a lock here do we? we are't
             for conn in self._pool.values():
                 if conn.last_ack_offset >= min_offset:
-                    continue  # Already up to date
+                    continue
+
+                # if connection has been waiting for offset acknowledgement for 
+                # less than waiting time skip sending another ack request for now
+                if (
+                    conn.awaiting_ack_offset
+                    and int(time() * 1000) - conn.awaiting_ack_offset < ack_wait_for_ms
+                ):
+                    continue
+
                 try:
-                    conn.sock.sendall(payload)
+                    conn.sock.sendall(get_ack)
+                    conn.awaiting_ack_offset = int(time() * 1000)
                 except Exception as e:
                     logging.warning(f"GETACK failed for {conn.uid}: {e}")
+
+    def update_last_ack_offset(self, uid: str, offset: int):
+        with self._lock:
+            if uid in self._pool:
+                self._pool[uid].last_ack_offset = offset
+                self._pool[uid].awaiting_ack_offset = None
 
     def acked_replicas(self, min_offset: int) -> int:
         """This returns the number of replicas that have successfully

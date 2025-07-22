@@ -13,6 +13,7 @@ from app.commands.handlers.psync import CommandPsync
 from app.commands.handlers.replconf import CommandReplConf
 from app.context import ExecutionContext
 from app.replication.errors import HandshakeFailed
+from app.resp.types import SimpleString
 
 
 class ReplicaSlave:
@@ -85,7 +86,9 @@ class ReplicaSlave:
         # Since this is the first time the replica is connecting to the master,
         # replication ID will be ? (a question mark) and offset will be -1
         res = self._send_command(CommandPsync([b"?", b"-1"]))
-        # TODO: Huge todo - update client offset at this stage
+        full_resync = SimpleString(res).value.decode().split(" ")
+        master_offset = int(full_resync[2])
+        ctx.info.add_to_offset(master_offset)
 
         if self.buf.startswith(b"$"):  # buffer already contains rdb contents
             pos = self.buf.find(b"\r\n")
