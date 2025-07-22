@@ -1,4 +1,4 @@
-from app.commands.base import ExecutionContext, RedisCommand
+from app.commands.base import ExecutionContext, ExecutionResult, RedisCommand
 from app.commands.errors import MissingSubcommand, UnrecognizedCommand
 from app.commands.handlers.config.config_get import CommandConfigGet
 
@@ -12,7 +12,7 @@ class CommandConfig(RedisCommand):
     """
 
     args: dict
-    sync: bool = False
+    write: bool = False
     sub_commands: dict[bytes, type[RedisCommand]] = {b"GET": CommandConfigGet}
     active_sub_command: RedisCommand | None = None
 
@@ -26,7 +26,7 @@ class CommandConfig(RedisCommand):
         else:
             raise UnrecognizedCommand(b"CONFIG " + sub_command_name)
 
-    def exec(self, ctx: ExecutionContext) -> list[bytes] | bytes:
+    def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
         if not self.active_sub_command:
             raise MissingSubcommand(b"CONFIG")
 

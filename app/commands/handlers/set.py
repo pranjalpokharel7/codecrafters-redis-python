@@ -5,8 +5,11 @@ from app.commands.base import ExecutionResult, RedisCommand
 from app.commands.parser import CommandArgParser
 from app.context import ExecutionContext
 from app.resp.types import NIL
+from app.resp.types.array import Array
+from app.resp.types.bulk_string import BulkString
 from app.resp.types.simple_string import SimpleString
 from app.storage.in_memory.base import RedisValue
+
 
 class CommandSet(RedisCommand):
     """Set key to hold the string value. If key already holds a value, it is
@@ -23,7 +26,7 @@ class CommandSet(RedisCommand):
     """
 
     args: dict = {}
-    sync: bool = True
+    write: bool = True
 
     def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()
@@ -36,7 +39,7 @@ class CommandSet(RedisCommand):
 
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext) -> ExecutionResult:
+    def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
         key, value = self.args["key"], self.args["value"]
         expiry = self._calculate_key_expiry()
         try:

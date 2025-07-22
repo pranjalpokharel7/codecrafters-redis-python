@@ -17,7 +17,7 @@ class CommandIncr(RedisCommand):
     """
 
     args: dict
-    sync: bool = True
+    write: bool = True
 
     def _incr_value(self, value: RedisValue) -> RedisValue:
         incr = int(value.raw_bytes.decode()) + 1
@@ -29,7 +29,7 @@ class CommandIncr(RedisCommand):
         parser.add_argument("key", 0)
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext) -> ExecutionResult:
+    def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
         key = self.args["key"]
         try:
             value = ctx.storage.update(key, self._incr_value)

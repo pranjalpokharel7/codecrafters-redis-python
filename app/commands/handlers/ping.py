@@ -15,14 +15,14 @@ class CommandPing(RedisCommand):
     """
 
     args: dict
-    sync: bool = False
+    write: bool = False
 
     def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()
         parser.add_argument("message", 0, required=False, default=None)
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext) -> ExecutionResult:
+    def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
         if message := self.args["message"]:
             return bytes(BulkString(message))
         return bytes(SimpleString(b"PONG"))

@@ -1,12 +1,16 @@
 import logging
 import socket
+import threading
+from time import sleep, time
 
-from app.commands.base import ExecutionResult
+from app.commands.base import ExecutionResult, RedisCommand
 from app.commands.handlers.psync import CommandPsync
 from app.commands.handlers.replconf import CommandReplConf
+from app.commands.handlers.wait import CommandWait
 from app.context import ExecutionContext
 from app.info.sections.info_replication import ReplicationRole
 from app.resp.types.array import bytes_to_resp
+from app.resp.types.integer import Integer
 from app.resp.types.simple_error import SimpleError
 from app.utils.command_from_resp import command_from_resp_array
 
@@ -25,8 +29,78 @@ def _send_response(client_socket: socket.socket, response: ExecutionResult):
             logging.info(f"sending response: {res}")
             client_socket.sendall(res)
     else:
-        logging.info(f"sending response: {response}")
-        client_socket.sendall(response)
+        if response:
+            logging.info(f"sending response: {response}")
+            client_socket.sendall(response)
+
+
+def _handle_wait(
+    acks_required: int,
+    timeout: int,  # in milliseconds
+    ctx: ExecutionContext,
+) -> int:
+    master_offset = ctx.info.get_offset()
+    start = int(time() * 1000)
+
+    # loop until waiting condition is fulfilled
+    while True:
+        current = int(time() * 1000)
+        if current - start >= timeout:
+            break
+
+        if ctx.pool.acked_replicas(master_offset) >= acks_required:
+            break
+
+        # poll replicas for their latest offset
+        ctx.pool.send_getack(master_offset)
+
+        sleep(0.01)  # throttle loop
+
+    count = ctx.pool.acked_replicas(master_offset)
+    return count
+
+
+def _handle_replication_logic(
+    command: RedisCommand,
+    offset: int,
+    propagation_bytes: bytes,
+    connection_uid: str,
+    client_socket: socket.socket,
+    ctx: ExecutionContext,
+    replication_connection: bool = False,
+):
+    # Only PSYNC requests need persistent connection tracking (replication setup).
+    # Other commands are stateless and handled per-request.
+    if ctx.info.server_role() == ReplicationRole.MASTER:
+        if isinstance(command, CommandPsync):
+            ctx.pool.add(connection_uid, client_socket)
+
+        # wait execution of thread until we receive acknowledgement
+        # from numreplicas or encounter timeout while waiting
+        if isinstance(command, CommandWait):
+            acks_required = command.args["numreplicas"]
+            timeout = command.args["timeout"]
+            replicas_in_sync = _handle_wait(acks_required, timeout, ctx)
+            _send_response(
+                client_socket, bytes(Integer(str(replicas_in_sync).encode()))
+            )
+
+        # propagate write commands to other replicas
+        if command.write:
+            # send messages to replicas in a background thread (non-blocking)
+            threading.Thread(
+                target=ctx.pool.propagate,
+                args=(propagation_bytes,),
+            ).start()
+
+            # master connection with a write command - update offset?
+            if not replication_connection:
+                ctx.info.add_to_offset(offset)
+    else:
+        # update local offset i.e. number of bytes processed
+        # if this is master-replica connection
+        if replication_connection:
+            ctx.info.add_to_offset(offset)
 
 
 def _process_and_update_buffer(
@@ -49,6 +123,7 @@ def _process_and_update_buffer(
             break  # return since buffer is still expecting some input
 
         # update buffer
+        t = buf[:]
         buf = buf[pos:]
 
         # if the client sends error, simply log it and continue
@@ -59,7 +134,8 @@ def _process_and_update_buffer(
         # parse and execute command
         try:
             command = command_from_resp_array(resp_element)
-            response = command.exec(ctx)
+            extra_args = {"connection_uid": connection_uid}
+            response = command.exec(ctx, **extra_args)
         except Exception as e:
             client_socket.sendall(bytes(SimpleError(str(e).encode())))
             logging.error(str(e))
@@ -68,20 +144,16 @@ def _process_and_update_buffer(
         if not replication_connection or isinstance(command, CommandReplConf):
             _send_response(client_socket, response)
 
-        # Only PSYNC requests need persistent connection tracking (replication setup).
-        # Other commands are stateless and handled per-request.
-        if ctx.info.server_role() == ReplicationRole.MASTER:
-            if isinstance(command, CommandPsync):
-                ctx.pool.add(connection_uid, client_socket)
-
-            # if the command is marked as "sync" i.e. send to other replicas
-            if command.sync:
-                ctx.pool.propagate(bytes(resp_element))
-        else:
-            # update local offset i.e. number of bytes processed 
-            # if this is master-replica connection
-            if replication_connection:
-                ctx.info.add_to_offset(pos)
+        # handle logic related to replication and server roles
+        _handle_replication_logic(
+            command,
+            pos,
+            bytes(resp_element),
+            connection_uid,
+            client_socket,
+            ctx,
+            replication_connection,
+        )
 
     return buf
 
@@ -104,18 +176,17 @@ def handle_connection(
     uid = f"{client_socket.getpeername()[0]}:{client_socket.getpeername()[1]}"
     buf = buf or b""
 
-    # pre-process buffer if it isn't empty
-    if buf:
-        buf = _process_and_update_buffer(
-            buf, uid, client_socket, ctx, replication_connection
-        )
+    # pre-process buffer if it isn't empty before we listen for reads
+    # (handle streaming incoming buffer)
+    buf = _process_and_update_buffer(
+        buf, uid, client_socket, ctx, replication_connection
+    )
 
     try:
         while True:
             chunk = client_socket.recv(MAX_BUF_SIZE)
             if not chunk:  # empty buffer means client has disconnected
                 break
-
             buf += chunk  # add received chunk to buffer
 
             # process and update buffer

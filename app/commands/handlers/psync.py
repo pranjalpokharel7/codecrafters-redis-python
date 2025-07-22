@@ -18,7 +18,7 @@ class CommandPsync(RedisCommand):
     """
 
     args: dict
-    sync: bool = False
+    write: bool = False
 
     def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()
@@ -26,7 +26,7 @@ class CommandPsync(RedisCommand):
         parser.add_argument("offset", 1)
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext) -> ExecutionResult:
+    def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
         replication = cast(InfoReplication, ctx.info.get_section("replication"))
         ack = bytes(
             SimpleString(

@@ -11,6 +11,7 @@ from app.commands.base import RedisCommand
 from app.commands.handlers.ping import CommandPing
 from app.commands.handlers.psync import CommandPsync
 from app.commands.handlers.replconf import CommandReplConf
+from app.context import ExecutionContext
 from app.replication.errors import HandshakeFailed
 
 
@@ -47,7 +48,9 @@ class ReplicaSlave:
         self.sock.sendall(req)
         return self._recv_response()
 
-    def _read_exact_buffer_length(self, length: int) -> bytes:
+    def _read_buffer_length_and_advance(self, length: int) -> bytes:
+        """Reads buffer up to specified length and advances buffer to start
+        from the next character."""
         result = self.buf[:length]
         self.buf = self.buf[length:]
         return result
@@ -62,9 +65,9 @@ class ReplicaSlave:
             self.buf += chunk
             pos = self.buf.find(b"\r\n")
             if pos != -1:
-                return self._read_exact_buffer_length(pos + 2)
+                return self._read_buffer_length_and_advance(pos + 2)
 
-    def handshake(self):
+    def handshake(self, ctx: ExecutionContext):
         """Establish handshake with master replica."""
         # send ping to master server
         res = self._send_command(CommandPing([]))
@@ -82,18 +85,19 @@ class ReplicaSlave:
         # Since this is the first time the replica is connecting to the master,
         # replication ID will be ? (a question mark) and offset will be -1
         res = self._send_command(CommandPsync([b"?", b"-1"]))
+        # TODO: Huge todo - update client offset at this stage
 
         if self.buf.startswith(b"$"):  # buffer already contains rdb contents
             pos = self.buf.find(b"\r\n")
-            length_buffer = self._read_exact_buffer_length(pos + 2)
+            length_buffer = self._read_buffer_length_and_advance(pos + 2)
         else:
             length_buffer = self._recv_response()
 
         # skip starting byte and trailing carriage return
         rdb_size = int(length_buffer[1:-2].decode())
-        _rdb_file = self._read_exact_buffer_length(rdb_size)
+        rdb_buffer = self._read_buffer_length_and_advance(rdb_size)
+        ctx.rdb.restore_from_snapshot(rdb_buffer, ctx.storage)
 
-        logging.info("received RDB file")
-
-        # skip handling response for now
-        logging.info("completed handshake with master server")
+        logging.info(
+            "received and processed RDB file: completed handshake with master server"
+        )

@@ -7,21 +7,22 @@ from app.resp.types.array import Array
 
 class CommandReplConfGetACK(RedisCommand):
     """The REPLCONF GETACK is an internal command used to track offset numbers
-    for synchronization between primary and replica.
+    for synchronization between primary and replica. This is sent by the master
+    to the replica.
 
     Syntax:
         REPLCONF GETACK *
     """
 
     args: dict
-    sync: bool = False
+    write: bool = False
 
     def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()
         parser.add_argument("offset", 0)
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext) -> ExecutionResult:
+    def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
         # hardcoded response for now
         current_offset = ctx.info.get_offset()
         return bytes(

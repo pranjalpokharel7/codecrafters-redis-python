@@ -17,7 +17,7 @@ class CommandReplConf(RedisCommand):
     """
 
     args: dict
-    sync: bool = False
+    write: bool = False
 
     def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()
@@ -25,7 +25,7 @@ class CommandReplConf(RedisCommand):
         parser.add_argument("value", 1)
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext) -> ExecutionResult:
+    def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
         if self.args["key"].upper() == b"GETACK":
             return CommandReplConfGetACK([self.args["value"]]).exec(ctx)
 

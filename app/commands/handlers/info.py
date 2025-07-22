@@ -13,7 +13,7 @@ class CommandInfo(RedisCommand):
     """
 
     args: dict
-    sync: bool = False
+    write: bool = False
 
     def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()
@@ -26,7 +26,7 @@ class CommandInfo(RedisCommand):
         )
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext) -> ExecutionResult:
+    def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
         if section_names := self.args["section"]:
             sections = ctx.info.get_sections(section_names)
         else:

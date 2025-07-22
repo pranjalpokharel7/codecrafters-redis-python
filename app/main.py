@@ -40,7 +40,11 @@ def main():
 
     # initialize execution context
     execution_context = ExecutionContext(
-        storage=storage, config=config, info=info, rdb=rdb, pool=ConnectionPool()
+        storage=storage,
+        config=config,
+        info=info,
+        rdb=rdb,
+        pool=ConnectionPool(),
     )
 
     threading.Thread(

@@ -34,13 +34,26 @@ class RDBManager:
                 else:
                     reader = f
 
-                logging.info(f"restoring from rdb backup file: {path}")
+                logging.info(f"restoring storage from rdb backup file: {path}")
                 parser = RDBParser()
                 storage.restore(parser.parse(reader).db)
 
         except FileNotFoundError:
             # ignore if backup file doesn't exist
             pass
+
+        except (InvalidKeyFormat, InvalidValueFormat):
+            logging.error(
+                "failed to restore snapshot because key-value contents are corrupted"
+            )
+
+    def restore_from_snapshot(self, snapshot: bytes, storage: RedisStorage):
+        """Restores contents of the storage from a snapshot."""
+        try:
+            logging.info(f"restoring storage from rdb snapshot")
+            parser = RDBParser()
+            reader = BytesIO(snapshot)
+            storage.restore(parser.parse(reader).db)
 
         except (InvalidKeyFormat, InvalidValueFormat):
             logging.error(

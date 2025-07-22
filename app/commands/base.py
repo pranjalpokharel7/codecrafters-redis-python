@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from app.context import ExecutionContext
 
 # type for result of executing a command
-ExecutionResult = list[bytes] | bytes
+ExecutionResult = list[bytes] | bytes | None
 
 
 class RedisCommand(ABC):
@@ -13,7 +13,7 @@ class RedisCommand(ABC):
     Base class that exposes API for command handlers.
     """
     args: dict  # arguments to the command, labeled as "argument name": "argument value"
-    sync: bool  # flag to denote whether the command is propagated to replicas
+    write: bool  # flag to denote whether the command makes write changes
 
     @abstractmethod
     def __init__(self, args_list: list[bytes]):
@@ -21,7 +21,7 @@ class RedisCommand(ABC):
 
     # should we always return a list of bytes though?
     # since we init using a list of bytes anyway?
-    def exec(self, ctx: ExecutionContext) -> ExecutionResult:
+    def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
         """Execute command by passing in a global execution context."""
         raise NotImplementedError
 

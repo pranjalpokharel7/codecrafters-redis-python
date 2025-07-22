@@ -21,7 +21,7 @@ def connect_to_master_replica(
             listening_port=listening_port,
         )
 
-        replica.handshake()
+        replica.handshake(execution_context)
 
         # all propagated commands from master will be listened to by this thread
         threading.Thread(

@@ -12,12 +12,15 @@ class CommandEcho(RedisCommand):
     """
 
     args: dict
-    sync: bool = False
+    write: bool = False
 
     def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()
         parser.add_argument("message", 0)
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext) -> ExecutionResult:
+    def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
         return bytes(BulkString(self.args["message"]))
+
+    def __bytes__(self) -> bytes:
+        return b"+ECHO\r\n"
