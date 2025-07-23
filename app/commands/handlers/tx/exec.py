@@ -1,6 +1,7 @@
 from app.commands.base import ExecutionResult, RedisCommand
 from app.commands.parser import CommandArgParser
 from app.context import ExecutionContext, ConnectionContext
+from app.resp.types.array import Array
 from app.resp.types.simple_error import SimpleError
 
 
@@ -39,3 +40,6 @@ class CommandExec(RedisCommand):
                         results.append(result)
 
             return f"*{len(results)}\r\n".encode() + b"".join(results)
+
+    def __bytes__(self) -> bytes:
+        return bytes(Array([b"EXEC"]))

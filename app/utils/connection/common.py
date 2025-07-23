@@ -1,25 +1,17 @@
 import logging
 import socket
-import threading
-from time import sleep, time
 
 from app.commands.base import ExecutionResult, RedisCommand
 from app.commands.handlers.psync import CommandPsync
 from app.commands.handlers.replconf import CommandReplConf
-from app.commands.handlers.tx.discard import CommandDiscard
-from app.commands.handlers.tx.exec import CommandExec
-from app.commands.handlers.tx.multi import CommandMulti
-from app.commands.handlers.wait import CommandWait
 from app.context import ConnectionContext, ExecutionContext
 from app.info.sections.info_replication import ReplicationRole
 from app.queue import TransactionQueue
 from app.resp.types.array import bytes_to_resp
-from app.resp.types.integer import Integer
 from app.resp.types.simple_error import SimpleError
-from app.resp.types.simple_string import SimpleString
 from app.utils.command_from_resp import command_from_resp_array
 
-MAX_BUF_SIZE = 512  # this should be a config parameter
+MAX_BUF_SIZE = 512  # this should be a config parameter?
 
 
 def _send_response(client_socket: socket.socket, response: ExecutionResult):
@@ -37,28 +29,16 @@ def _send_response(client_socket: socket.socket, response: ExecutionResult):
 
 def _handle_replication_logic(
     command: RedisCommand,
-    propagation_bytes: bytes,
     client_socket: socket.socket,
     conn_ctx: ConnectionContext,
     exec_ctx: ExecutionContext,
     replication_connection: bool = False,
 ):
-    offset = len(propagation_bytes)
+    offset = len(bytes(command))
     if exec_ctx.info.server_role() == ReplicationRole.MASTER:
         # replicas make psync requests
         if isinstance(command, CommandPsync):
             exec_ctx.pool.add(conn_ctx.uid, client_socket)
-
-        # propagate write commands to other replicas
-        elif command.write:
-            # send messages to replicas in a background thread (non-blocking)
-            threading.Thread(
-                target=exec_ctx.pool.propagate,
-                args=(propagation_bytes,),
-            ).start()
-
-            # offset that increments for every byte of replication stream that it is produced to be sent to replicas
-            exec_ctx.info.add_to_offset(offset)
     else:
         # for slave, update offset on commands received from master
         if replication_connection:
@@ -101,7 +81,7 @@ def _process_and_update_buffer(
             continue
 
         # replica do not reply on command execution to master
-        # replconf is used during initial handshake - 
+        # replconf is used during initial handshake -
         # except for getack and ack messages whose responses are sent
         if not replication_connection or isinstance(command, CommandReplConf):
             _send_response(client_socket, response)
@@ -109,7 +89,6 @@ def _process_and_update_buffer(
         # handle logic related to replication and server roles
         _handle_replication_logic(
             command,
-            bytes(resp_element),
             client_socket,
             conn_ctx,
             exec_ctx,
@@ -154,7 +133,7 @@ def handle_connection(
             buf += chunk  # add received chunk to buffer
             buf = _process_and_update_buffer(
                 buf, client_socket, conn_ctx, exec_ctx, replication_connection
-            ) 
+            )
 
     except Exception as e:
         logging.exception(str(e))

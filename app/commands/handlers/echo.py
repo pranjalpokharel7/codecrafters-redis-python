@@ -2,6 +2,7 @@ from app.commands.base import ExecutionResult, RedisCommand, queueable
 from app.commands.parser import CommandArgParser
 from app.context import ConnectionContext, ExecutionContext
 from app.resp import BulkString
+from app.resp.types.array import Array
 
 
 class CommandEcho(RedisCommand):
@@ -26,4 +27,5 @@ class CommandEcho(RedisCommand):
         return bytes(BulkString(self.args["message"]))
 
     def __bytes__(self) -> bytes:
-        return b"+ECHO\r\n"
+        message = self.args["message"]
+        return bytes(Array([BulkString(b"ECHO"), BulkString(message)]))

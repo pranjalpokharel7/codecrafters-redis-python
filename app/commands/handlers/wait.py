@@ -1,9 +1,12 @@
 import threading
 from time import sleep, time
 
+from app.commands.arg_mapping import map_to_int
 from app.commands.base import ExecutionResult, RedisCommand
 from app.commands.parser import CommandArgParser
 from app.context import ConnectionContext, ExecutionContext
+from app.resp.types.array import Array
+from app.resp.types.bulk_string import BulkString
 from app.resp.types.integer import Integer
 
 
@@ -24,8 +27,8 @@ class CommandWait(RedisCommand):
 
     def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()
-        parser.add_argument("numreplicas", 0, map_fn=lambda v: int(v.decode()))
-        parser.add_argument("timeout", 1, map_fn=lambda v: int(v.decode()))
+        parser.add_argument("numreplicas", 0, map_fn=map_to_int)
+        parser.add_argument("timeout", 1, map_fn=map_to_int)
         self.args = parser.parse_args(args_list)
 
     def exec(
@@ -37,6 +40,15 @@ class CommandWait(RedisCommand):
         )
         replicas_in_sync = _count_replicas_in_sync(acks_required, timeout, exec_ctx)
         return bytes(Integer(str(replicas_in_sync).encode()))
+
+    def __bytes__(self) -> bytes:
+        numreplicas, timeout = (
+            str(self.args["numreplicas"]).encode(),
+            str(self.args["timeout"]).encode(),
+        )
+        return bytes(
+            Array([BulkString(b"WAIT"), BulkString(numreplicas), BulkString(timeout)])
+        )
 
 
 def _count_replicas_in_sync(

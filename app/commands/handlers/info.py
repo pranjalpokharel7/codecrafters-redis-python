@@ -1,7 +1,9 @@
+from app.commands.arg_mapping import map_to_str_list
 from app.commands.base import ExecutionResult, RedisCommand, queueable
 from app.commands.parser import CommandArgParser
 from app.context import ConnectionContext, ExecutionContext
 from app.resp.types import BulkString
+from app.resp.types.array import Array
 
 
 class CommandInfo(RedisCommand):
@@ -23,10 +25,10 @@ class CommandInfo(RedisCommand):
             0,
             required=False,
             capture=True,
-            map_fn=lambda sections: [s.decode() for s in sections],
+            map_fn=map_to_str_list,
         )
         self.args = parser.parse_args(args_list)
-    
+
     @queueable
     def exec(
         self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs
@@ -39,3 +41,9 @@ class CommandInfo(RedisCommand):
 
         info = b"".join(bytes(s) for s in sections.values())
         return bytes(BulkString(info))
+
+    def __bytes__(self) -> bytes:
+        array = [BulkString(b"INFO")]
+        for section_name in self.args["section"]:
+            array.append(BulkString(section_name.encode()))
+        return bytes(Array(array))

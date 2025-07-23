@@ -1,10 +1,13 @@
 import logging
 from time import time
 
-from app.commands.base import ExecutionResult, RedisCommand, queueable
+from app.commands.arg_mapping import map_to_str
+from app.commands.base import ExecutionResult, RedisCommand, propagate, queueable
 from app.commands.parser import CommandArgParser
 from app.context import ConnectionContext, ExecutionContext
 from app.resp.types import NIL
+from app.resp.types.array import Array
+from app.resp.types.bulk_string import BulkString
 from app.resp.types.simple_string import SimpleString
 from app.storage.in_memory.base import RedisValue
 
@@ -30,13 +33,12 @@ class CommandSet(RedisCommand):
         parser = CommandArgParser()
         parser.add_argument("key", 0)
         parser.add_argument("value", 1)
-        parser.add_argument("expiry", 2, required=False, map_fn=lambda x: x.decode())
-        parser.add_argument(
-            "expiry_value", 3, required=False, map_fn=lambda x: x.decode()
-        )
+        parser.add_argument("expiry", 2, required=False, map_fn=map_to_str)
+        parser.add_argument("expiry_value", 3, required=False, map_fn=map_to_str)
 
         self.args = parser.parse_args(args_list)
 
+    @propagate
     @queueable
     def exec(
         self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs
@@ -49,6 +51,16 @@ class CommandSet(RedisCommand):
         except Exception as e:  # currently an exception type is unknown
             logging.error(f"Command SET - {e}")
             return NIL
+
+    def __bytes__(self) -> bytes:
+        key, value = self.args["key"], self.args["value"]
+        array = [BulkString(b"SET"), BulkString(key), BulkString(value)]
+
+        expiry, expiry_value = self.args["expiry"], self.args["expiry_value"]
+        if expiry and expiry_value:
+            array.extend([BulkString(expiry.encode()), BulkString(expiry.encode())])
+
+        return bytes(Array(array))
 
     def _calculate_key_expiry(self) -> int | None:
         # store expiry

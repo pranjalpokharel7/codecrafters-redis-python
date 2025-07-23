@@ -1,8 +1,10 @@
-from app.commands.base import ExecutionResult, RedisCommand, queueable
+from app.commands.base import ExecutionResult, RedisCommand, propagate, queueable
 from app.commands.handlers import CommandSet
 from app.commands.parser import CommandArgParser
 from app.context import ConnectionContext, ExecutionContext
 from app.resp.types import Integer
+from app.resp.types.array import Array
+from app.resp.types.bulk_string import BulkString
 from app.resp.types.simple_error import SimpleError
 from app.storage.in_memory.errors import KeyDoesNotExist, KeyExpired
 from app.storage.types import RedisValue
@@ -25,6 +27,7 @@ class CommandIncr(RedisCommand):
         parser.add_argument("key", 0)
         self.args = parser.parse_args(args_list)
 
+    @propagate
     @queueable
     def exec(
         self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs
@@ -41,6 +44,10 @@ class CommandIncr(RedisCommand):
 
         except (ValueError, UnicodeDecodeError):
             return bytes(SimpleError(b"ERR value is not an integer or out of range"))
+
+    def __bytes__(self) -> bytes:
+        key = self.args["key"]
+        return bytes(Array([BulkString(b"INCR"), BulkString(key)]))
 
 
 def _incr_value(value: RedisValue) -> RedisValue:
