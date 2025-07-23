@@ -4,6 +4,7 @@ import threading
 from time import sleep, time
 
 from app.commands.base import ExecutionResult, RedisCommand
+from app.commands.handlers.discard import CommandDiscard
 from app.commands.handlers.exec import CommandExec
 from app.commands.handlers.multi import CommandMulti
 from app.commands.handlers.psync import CommandPsync
@@ -11,11 +12,11 @@ from app.commands.handlers.replconf import CommandReplConf
 from app.commands.handlers.wait import CommandWait
 from app.context import ExecutionContext
 from app.info.sections.info_replication import ReplicationRole
-from app.transaction.queue import TransactionQueue
 from app.resp.types.array import bytes_to_resp
 from app.resp.types.integer import Integer
 from app.resp.types.simple_error import SimpleError
 from app.resp.types.simple_string import SimpleString
+from app.transaction.queue import TransactionQueue
 from app.utils.command_from_resp import command_from_resp_array
 
 MAX_BUF_SIZE = 512  # this should be a config parameter
@@ -108,6 +109,42 @@ def _handle_replication_logic(
             ctx.info.add_to_offset(offset)
 
 
+def _handle_transaction_logic(
+    command: RedisCommand,
+    connection_uid: str,
+    tx_queue: TransactionQueue,
+    ctx: ExecutionContext,
+) -> bytes | None:
+    if isinstance(command, CommandMulti):
+        tx_queue.enter_transaction()
+
+    elif isinstance(command, CommandExec):
+        if not tx_queue.is_transaction_active():
+            return bytes(SimpleError(b"ERR EXEC without MULTI"))
+
+        else:
+            results = []
+            # also process all commands in the queue
+            for command in tx_queue.get_command():
+                extra_args = {"connection_uid": connection_uid}
+                result = command.exec(ctx, **extra_args)
+
+                # add result depending on it's type
+                if isinstance(result, list):
+                    results.extend(result)
+                else:
+                    if result:
+                        results.append(result)
+
+            tx_queue.exit_transaction()
+            return f"*{len(results)}\r\n".encode() + b"".join(results)
+
+    elif isinstance(command, CommandDiscard):
+        tx_queue.flush()
+        tx_queue.exit_transaction()
+        return bytes(SimpleString(b"OK"))
+
+
 def _process_and_update_buffer(
     buf: bytes,
     connection_uid: str,
@@ -151,34 +188,11 @@ def _process_and_update_buffer(
             logging.error(str(e))
             continue
 
-        if isinstance(command, CommandMulti):
-            tx_queue.enter_transaction()
-            _send_response(client_socket, response)
+        # update response as needed based on result of handling transaction logic
+        if tx_result := _handle_transaction_logic(command, connection_uid, tx_queue, ctx):
+            response = tx_result
 
-        elif isinstance(command, CommandExec):
-            if not tx_queue.is_transaction_active():
-                response = bytes(SimpleError(b"ERR EXEC without MULTI"))
-
-            else:
-                results = []
-                # also process all commands in the queue
-                for command in tx_queue.get_command():
-                    extra_args = {"connection_uid": connection_uid}
-                    result = command.exec(ctx, **extra_args)
-
-                    # add result depending on it's type
-                    if isinstance(result, list):
-                        results.extend(result)
-                    else:
-                        if result:
-                            results.append(result)
-
-                tx_queue.exit_transaction()
-                response = f"*{len(results)}\r\n".encode() + b"".join(results)
-            
-            _send_response(client_socket, response)
-            
-        elif not replication_connection or isinstance(command, CommandReplConf):
+        if not replication_connection or isinstance(command, CommandReplConf):
             _send_response(client_socket, response)
 
         # handle logic related to replication and server roles

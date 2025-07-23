@@ -15,3 +15,4 @@ from .psync import CommandPsync
 from .wait import CommandWait
 from .multi import CommandMulti
 from .exec import CommandExec
+from .discard import CommandDiscard

@@ -18,6 +18,14 @@ class TransactionQueue:
 
     def is_transaction_active(self):
         return self._active
+    
+    def flush(self):
+        """Remove all items from the queue."""
+        while True:
+            try:
+                self._queue.get_nowait()
+            except queue.Empty:
+                break
 
     def enter_transaction(self):
         logging.info("entering transaction")
