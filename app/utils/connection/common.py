@@ -140,6 +140,9 @@ def _handle_transaction_logic(
             return f"*{len(results)}\r\n".encode() + b"".join(results)
 
     elif isinstance(command, CommandDiscard):
+        if not tx_queue.is_transaction_active():
+            return bytes(SimpleError(b"ERR EXEC without MULTI"))
+
         tx_queue.flush()
         tx_queue.exit_transaction()
         return bytes(SimpleString(b"OK"))
