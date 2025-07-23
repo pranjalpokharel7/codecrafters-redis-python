@@ -1,3 +1,4 @@
+import logging
 import threading
 from typing import Any
 
@@ -94,5 +95,6 @@ class Info:
                 self._sections["replication"], "master_repl_offset"
             )
             updated_offset = current_offset + delta
+            logging.info(f"updating offset to {updated_offset}")
             setattr(self._sections["replication"], "master_repl_offset", updated_offset)
             return updated_offset

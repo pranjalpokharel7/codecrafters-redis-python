@@ -1,6 +1,10 @@
+import threading
+from time import sleep, time
+
 from app.commands.base import ExecutionResult, RedisCommand
 from app.commands.parser import CommandArgParser
 from app.context import ConnectionContext, ExecutionContext
+from app.resp.types.integer import Integer
 
 
 class CommandWait(RedisCommand):
@@ -27,6 +31,38 @@ class CommandWait(RedisCommand):
     def exec(
         self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs
     ) -> ExecutionResult:
-        # execution of wait command is handled at the master propagation section
-        # the method is here just to maintain consistent API
-        return None
+        acks_required, timeout = (
+            self.args["numreplicas"],
+            self.args["timeout"],
+        )
+        replicas_in_sync = _count_replicas_in_sync(acks_required, timeout, exec_ctx)
+        return bytes(Integer(str(replicas_in_sync).encode()))
+
+
+def _count_replicas_in_sync(
+    acks_required: int,
+    timeout: int,  # in milliseconds
+    ctx: ExecutionContext,
+) -> int:
+    master_offset = ctx.info.get_offset()
+    start = int(time() * 1000)
+
+    # loop until waiting condition is fulfilled
+    while True:
+        if ctx.pool.acked_replicas(master_offset) >= acks_required:
+            break
+
+        current = int(time() * 1000)
+        if current - start >= timeout:
+            break
+
+        # poll replicas for their latest offset
+        threading.Thread(
+            target=ctx.pool.send_getack,
+            args=(master_offset,),
+        ).start()
+
+        sleep(0.02)  # throttle loop by 20ms
+
+    count = ctx.pool.acked_replicas(master_offset)
+    return count
