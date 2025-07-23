@@ -9,9 +9,8 @@ ExecutionResult = list[bytes] | bytes | None
 
 
 class RedisCommand(ABC):
-    """
-    Base class that exposes API for command handlers.
-    """
+    """Base class that exposes API for command handlers."""
+
     args: dict  # arguments to the command, labeled as "argument name": "argument value"
     write: bool  # flag to denote whether the command makes write changes
 
@@ -21,6 +20,7 @@ class RedisCommand(ABC):
 
     # should we always return a list of bytes though?
     # since we init using a list of bytes anyway?
+    @abstractmethod
     def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
         """Execute command by passing in a global execution context."""
         raise NotImplementedError
@@ -29,3 +29,11 @@ class RedisCommand(ABC):
         """Serialize command to bytes which can be used to communicate with
         another redis-server (for redis-client capabilities)."""
         raise NotImplementedError
+
+    def name(self) -> str:
+        """Returns command name.
+
+        This is the class name of the command handler which is
+        used to instantiate the command.
+        """
+        return self.__class__.__name__

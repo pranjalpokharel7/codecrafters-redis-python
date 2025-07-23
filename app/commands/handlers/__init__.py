@@ -13,3 +13,5 @@ from .incr import CommandIncr
 from .replconf import CommandReplConf
 from .psync import CommandPsync
 from .wait import CommandWait
+from .multi import CommandMulti
+from .exec import CommandExec

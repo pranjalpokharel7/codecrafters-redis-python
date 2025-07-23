@@ -4,11 +4,14 @@ import threading
 from time import sleep, time
 
 from app.commands.base import ExecutionResult, RedisCommand
+from app.commands.handlers.exec import CommandExec
+from app.commands.handlers.multi import CommandMulti
 from app.commands.handlers.psync import CommandPsync
 from app.commands.handlers.replconf import CommandReplConf
 from app.commands.handlers.wait import CommandWait
 from app.context import ExecutionContext
 from app.info.sections.info_replication import ReplicationRole
+from app.queue import TransactionQueue
 from app.resp.types.array import bytes_to_resp
 from app.resp.types.integer import Integer
 from app.resp.types.simple_error import SimpleError
@@ -107,6 +110,7 @@ def _handle_replication_logic(
 def _process_and_update_buffer(
     buf: bytes,
     connection_uid: str,
+    tx_queue: TransactionQueue,
     client_socket: socket.socket,
     ctx: ExecutionContext,
     replication_connection: bool = False,
@@ -124,7 +128,6 @@ def _process_and_update_buffer(
             break  # return since buffer is still expecting some input
 
         # update buffer
-        t = buf[:]
         buf = buf[pos:]
 
         # if the client sends error, simply log it and continue
@@ -135,15 +138,48 @@ def _process_and_update_buffer(
         # parse and execute command
         try:
             command = command_from_resp_array(resp_element)
-            extra_args = {"connection_uid": connection_uid}
-            response = command.exec(ctx, **extra_args)
+
+            if tx_queue.is_transaction_active():
+                tx_queue.add_command(command)
+            else:
+                extra_args = {"connection_uid": connection_uid}
+                results = command.exec(ctx, **extra_args)
         except Exception as e:
             client_socket.sendall(bytes(SimpleError(str(e).encode())))
             logging.error(str(e))
             continue
 
-        if not replication_connection or isinstance(command, CommandReplConf):
+        if isinstance(command, CommandMulti):
+            tx_queue.enter_transaction()
+            _send_response(client_socket, results)
+
+        elif isinstance(command, CommandExec):
+            if not tx_queue.is_transaction_active():
+                response = bytes(SimpleError(b"ERR EXEC without MULTI"))
+
+            else:
+                results = []
+                # also process all commands in the queue
+                for command in tx_queue.get_command():
+                    command = command_from_resp_array(resp_element)
+                    extra_args = {"connection_uid": connection_uid}
+                    result = command.exec(ctx, **extra_args)
+
+                    # add result depending on it's type
+                    if isinstance(result, list):
+                        results.extend(result)
+                    else:
+                        if result:
+                            results.append(result)
+
+                tx_queue.exit_transaction()
+                response = f"*{len(results)}\r\n".encode() + b"".join(results)
+            
             _send_response(client_socket, response)
+            
+        elif not replication_connection or isinstance(command, CommandReplConf):
+            if not tx_queue.is_transaction_active():
+                _send_response(client_socket, results)
 
         # handle logic related to replication and server roles
         _handle_replication_logic(
@@ -175,11 +211,12 @@ def handle_connection(
     # use hostname:port as unique id for socket (for now)
     uid = f"{client_socket.getpeername()[0]}:{client_socket.getpeername()[1]}"
     buf = buf or b""
+    tx_queue = TransactionQueue(uid)
 
     # pre-process buffer if it isn't empty before we listen for reads
     # (handle streaming incoming buffer)
     buf = _process_and_update_buffer(
-        buf, uid, client_socket, ctx, replication_connection
+        buf, uid, tx_queue, client_socket, ctx, replication_connection
     )
 
     try:
@@ -191,7 +228,7 @@ def handle_connection(
 
             # process and update buffer
             buf = _process_and_update_buffer(
-                buf, uid, client_socket, ctx, replication_connection
+                buf, uid, tx_queue, client_socket, ctx, replication_connection
             )
 
     except Exception as e:
