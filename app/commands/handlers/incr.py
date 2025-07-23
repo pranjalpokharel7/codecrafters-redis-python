@@ -1,6 +1,7 @@
-from app.commands.base import ExecutionContext, ExecutionResult, RedisCommand
+from app.commands.base import ExecutionResult, RedisCommand, queueable
 from app.commands.handlers import CommandSet
 from app.commands.parser import CommandArgParser
+from app.context import ConnectionContext, ExecutionContext
 from app.resp.types import Integer
 from app.resp.types.simple_error import SimpleError
 from app.storage.in_memory.errors import KeyDoesNotExist, KeyExpired
@@ -24,15 +25,18 @@ class CommandIncr(RedisCommand):
         parser.add_argument("key", 0)
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
+    @queueable
+    def exec(
+        self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs
+    ) -> ExecutionResult:
         key = self.args["key"]
         try:
-            value = ctx.storage.update(key, _incr_value)
+            value = exec_ctx.storage.update(key, _incr_value)
             return bytes(Integer(bytes(value)))
 
         except (KeyDoesNotExist, KeyExpired):
             # create a new key with integer value 1
-            CommandSet([key, b"1"]).exec(ctx)
+            CommandSet([key, b"1"]).exec(exec_ctx, conn_ctx, **kwargs)
             return bytes(Integer(b"1"))
 
         except (ValueError, UnicodeDecodeError):

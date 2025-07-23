@@ -25,7 +25,7 @@
             "name": "Debug: test function",
             "type": "debugpy",
             "request": "launch",
-            "module": "tests.test_rdb",
+            "module": "tests.test_commands.test_incr",
             "justMyCode": false
         }
     ]

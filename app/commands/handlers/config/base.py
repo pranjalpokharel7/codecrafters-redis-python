@@ -1,6 +1,7 @@
-from app.commands.base import ExecutionContext, ExecutionResult, RedisCommand
+from app.commands.base import ExecutionResult, RedisCommand, queueable
 from app.commands.errors import MissingSubcommand, UnrecognizedCommand
 from app.commands.handlers.config.config_get import CommandConfigGet
+from app.context import ExecutionContext, ConnectionContext
 
 
 class CommandConfig(RedisCommand):
@@ -26,8 +27,11 @@ class CommandConfig(RedisCommand):
         else:
             raise UnrecognizedCommand(b"CONFIG " + sub_command_name)
 
-    def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
+    @queueable
+    def exec(
+        self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs
+    ) -> ExecutionResult:
         if not self.active_sub_command:
             raise MissingSubcommand(b"CONFIG")
 
-        return self.active_sub_command.exec(ctx)
+        return self.active_sub_command.exec(exec_ctx, conn_ctx, **kwargs)

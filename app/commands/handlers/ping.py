@@ -1,6 +1,6 @@
-from app.context import ExecutionContext
-from app.commands.base import ExecutionResult, RedisCommand
+from app.commands.base import ExecutionResult, RedisCommand, queueable
 from app.commands.parser import CommandArgParser
+from app.context import ConnectionContext, ExecutionContext
 from app.resp.types.array import Array
 from app.resp.types.bulk_string import BulkString
 from app.resp.types.simple_string import SimpleString
@@ -22,7 +22,10 @@ class CommandPing(RedisCommand):
         parser.add_argument("message", 0, required=False, default=None)
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
+    @queueable
+    def exec(
+        self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs
+    ) -> ExecutionResult:
         if message := self.args["message"]:
             return bytes(BulkString(message))
         return bytes(SimpleString(b"PONG"))

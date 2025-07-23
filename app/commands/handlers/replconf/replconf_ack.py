@@ -1,7 +1,7 @@
 from app.commands.base import ExecutionResult, RedisCommand
 from app.commands.parser import CommandArgParser
 from app.commands.arg_mapping import map_to_int
-from app.context import ExecutionContext
+from app.context import ExecutionContext, ConnectionContext
 from app.resp import BulkString
 from app.resp.types.array import Array
 
@@ -23,12 +23,10 @@ class CommandReplConfACK(RedisCommand):
         parser.add_argument("offset", 0, map_fn=map_to_int)
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
+    def exec(self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs) -> ExecutionResult:
         try:
             offset = self.args["offset"]
-            connection_uid = kwargs.get("connection_uid")
-            if connection_uid:
-                ctx.pool.update_last_ack_offset(connection_uid, offset)
+            exec_ctx.pool.update_last_ack_offset(conn_ctx.uid, offset)
 
         except Exception:
             pass  # ignore bad ACKs

@@ -1,12 +1,10 @@
 import logging
 from time import time
 
-from app.commands.base import ExecutionResult, RedisCommand
+from app.commands.base import ExecutionResult, RedisCommand, queueable
 from app.commands.parser import CommandArgParser
-from app.context import ExecutionContext
+from app.context import ConnectionContext, ExecutionContext
 from app.resp.types import NIL
-from app.resp.types.array import Array
-from app.resp.types.bulk_string import BulkString
 from app.resp.types.simple_string import SimpleString
 from app.storage.in_memory.base import RedisValue
 
@@ -39,11 +37,14 @@ class CommandSet(RedisCommand):
 
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
+    @queueable
+    def exec(
+        self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs
+    ) -> ExecutionResult:
         key, value = self.args["key"], self.args["value"]
         expiry = self._calculate_key_expiry()
         try:
-            ctx.storage.set(key, RedisValue(raw_bytes=value, expiry=expiry))
+            exec_ctx.storage.set(key, RedisValue(raw_bytes=value, expiry=expiry))
             return bytes(SimpleString(b"OK"))
         except Exception as e:  # currently an exception type is unknown
             logging.error(f"Command SET - {e}")

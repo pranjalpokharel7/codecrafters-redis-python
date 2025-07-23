@@ -1,5 +1,6 @@
-from app.commands.base import ExecutionContext, ExecutionResult, RedisCommand
+from app.commands.base import ExecutionResult, RedisCommand, queueable
 from app.commands.parser import CommandArgParser
+from app.context import ConnectionContext, ExecutionContext
 from app.resp.types import Array, BulkString
 
 
@@ -26,9 +27,12 @@ class CommandKeys(RedisCommand):
         parser.add_argument("pattern", 0)
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
+    @queueable
+    def exec(
+        self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs
+    ) -> ExecutionResult:
         pattern = self.args["pattern"]
-        keys = ctx.storage.keys(pattern)
+        keys = exec_ctx.storage.keys(pattern)
         return bytes(Array([BulkString(k) for k in keys]))
 
     def __bytes__(self) -> bytes:

@@ -1,6 +1,6 @@
 from app.commands.base import ExecutionResult, RedisCommand
 from app.commands.parser import CommandArgParser
-from app.context import ExecutionContext
+from app.context import ExecutionContext, ConnectionContext
 from app.resp import BulkString
 from app.resp.types.array import Array
 
@@ -22,9 +22,9 @@ class CommandReplConfGetACK(RedisCommand):
         parser.add_argument("offset", 0)
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
+    def exec(self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs) -> ExecutionResult:
         # hardcoded response for now
-        current_offset = ctx.info.get_offset()
+        current_offset = exec_ctx.info.get_offset()
         return bytes(
             Array(
                 [

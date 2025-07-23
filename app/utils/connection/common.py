@@ -4,19 +4,19 @@ import threading
 from time import sleep, time
 
 from app.commands.base import ExecutionResult, RedisCommand
-from app.commands.handlers.discard import CommandDiscard
-from app.commands.handlers.exec import CommandExec
-from app.commands.handlers.multi import CommandMulti
 from app.commands.handlers.psync import CommandPsync
 from app.commands.handlers.replconf import CommandReplConf
+from app.commands.handlers.tx.discard import CommandDiscard
+from app.commands.handlers.tx.exec import CommandExec
+from app.commands.handlers.tx.multi import CommandMulti
 from app.commands.handlers.wait import CommandWait
-from app.context import ExecutionContext
+from app.context import ConnectionContext, ExecutionContext
 from app.info.sections.info_replication import ReplicationRole
+from app.queue import TransactionQueue
 from app.resp.types.array import bytes_to_resp
 from app.resp.types.integer import Integer
 from app.resp.types.simple_error import SimpleError
 from app.resp.types.simple_string import SimpleString
-from app.transaction.queue import TransactionQueue
 from app.utils.command_from_resp import command_from_resp_array
 
 MAX_BUF_SIZE = 512  # this should be a config parameter
@@ -69,15 +69,15 @@ def _handle_wait(
 def _handle_replication_logic(
     command: RedisCommand,
     propagation_bytes: bytes,
-    connection_uid: str,
     client_socket: socket.socket,
-    ctx: ExecutionContext,
+    conn_ctx: ConnectionContext,
+    exec_ctx: ExecutionContext,
     replication_connection: bool = False,
 ):
     offset = len(propagation_bytes)
-    if ctx.info.server_role() == ReplicationRole.MASTER:
+    if exec_ctx.info.server_role() == ReplicationRole.MASTER:
         if isinstance(command, CommandPsync):
-            ctx.pool.add(connection_uid, client_socket)
+            exec_ctx.pool.add(conn_ctx.uid, client_socket)
 
         # wait execution of thread until we receive acknowledgement
         # from numreplicas or encounter timeout while waiting
@@ -86,7 +86,7 @@ def _handle_replication_logic(
                 command.args["numreplicas"],
                 command.args["timeout"],
             )
-            replicas_in_sync = _handle_wait(acks_required, timeout, ctx)
+            replicas_in_sync = _handle_wait(acks_required, timeout, exec_ctx)
             _send_response(
                 client_socket, bytes(Integer(str(replicas_in_sync).encode()))
             )
@@ -95,65 +95,25 @@ def _handle_replication_logic(
         elif command.write:
             # send messages to replicas in a background thread (non-blocking)
             threading.Thread(
-                target=ctx.pool.propagate,
+                target=exec_ctx.pool.propagate,
                 args=(propagation_bytes,),
             ).start()
 
             # offset that increments for every byte of replication stream that it is produced to be sent to replicas
             logging.info(f"adding {offset} to master offset count")
-            ctx.info.add_to_offset(offset)
+            exec_ctx.info.add_to_offset(offset)
     else:
         # for slave, update offset on write commands received from master
         # how do slaves update their offset?
         if replication_connection:
-            ctx.info.add_to_offset(offset)
-
-
-def _handle_transaction_logic(
-    command: RedisCommand,
-    connection_uid: str,
-    tx_queue: TransactionQueue,
-    ctx: ExecutionContext,
-) -> bytes | None:
-    if isinstance(command, CommandMulti):
-        tx_queue.enter_transaction()
-
-    elif isinstance(command, CommandExec):
-        if not tx_queue.is_transaction_active():
-            return bytes(SimpleError(b"ERR EXEC without MULTI"))
-
-        else:
-            results = []
-            # also process all commands in the queue
-            for command in tx_queue.get_command():
-                extra_args = {"connection_uid": connection_uid}
-                result = command.exec(ctx, **extra_args)
-
-                # add result depending on it's type
-                if isinstance(result, list):
-                    results.extend(result)
-                else:
-                    if result:
-                        results.append(result)
-
-            tx_queue.exit_transaction()
-            return f"*{len(results)}\r\n".encode() + b"".join(results)
-
-    elif isinstance(command, CommandDiscard):
-        if not tx_queue.is_transaction_active():
-            return bytes(SimpleError(b"ERR DISCARD without MULTI"))
-
-        tx_queue.flush()
-        tx_queue.exit_transaction()
-        return bytes(SimpleString(b"OK"))
+            exec_ctx.info.add_to_offset(offset)
 
 
 def _process_and_update_buffer(
     buf: bytes,
-    connection_uid: str,
-    tx_queue: TransactionQueue,
     client_socket: socket.socket,
-    ctx: ExecutionContext,
+    conn_ctx: ConnectionContext,
+    exec_ctx: ExecutionContext,
     replication_connection: bool = False,
 ) -> bytes:
     """Processes recv buffer and returns the updated buffer with remaining
@@ -179,21 +139,11 @@ def _process_and_update_buffer(
         # parse and execute command
         try:
             command = command_from_resp_array(resp_element)
-
-            if tx_queue.is_transaction_active():
-                tx_queue.add_command(command)
-                response = bytes(SimpleString(b"QUEUED"))
-            else:
-                extra_args = {"connection_uid": connection_uid}
-                response = command.exec(ctx, **extra_args)
+            response = command.exec(exec_ctx, conn_ctx)
         except Exception as e:
             client_socket.sendall(bytes(SimpleError(str(e).encode())))
             logging.error(str(e))
             continue
-
-        # update response as needed based on result of handling transaction logic
-        if tx_result := _handle_transaction_logic(command, connection_uid, tx_queue, ctx):
-            response = tx_result
 
         if not replication_connection or isinstance(command, CommandReplConf):
             _send_response(client_socket, response)
@@ -202,9 +152,9 @@ def _process_and_update_buffer(
         _handle_replication_logic(
             command,
             bytes(resp_element),
-            connection_uid,
             client_socket,
-            ctx,
+            conn_ctx,
+            exec_ctx,
             replication_connection,
         )
 
@@ -213,7 +163,7 @@ def _process_and_update_buffer(
 
 def handle_connection(
     client_socket: socket.socket,
-    ctx: ExecutionContext,
+    exec_ctx: ExecutionContext,
     buf: bytes | None = None,
     replication_connection: bool = False,
 ):
@@ -227,15 +177,16 @@ def handle_connection(
     """
     # use hostname:port as unique id for socket (for now)
     uid = f"{client_socket.getpeername()[0]}:{client_socket.getpeername()[1]}"
-    logging.info(f"processing connection {uid}")
+    tx_queue = TransactionQueue()
+    conn_ctx = ConnectionContext(uid, tx_queue)
 
+    logging.info(f"processing connection {uid}")
     buf = buf or b""
-    tx_queue = TransactionQueue(uid)
 
     # pre-process buffer if it isn't empty before we listen for reads
     # (handle streaming incoming buffer)
     buf = _process_and_update_buffer(
-        buf, uid, tx_queue, client_socket, ctx, replication_connection
+        buf, client_socket, conn_ctx, exec_ctx, replication_connection
     )
 
     try:
@@ -247,7 +198,7 @@ def handle_connection(
 
             # process and update buffer
             buf = _process_and_update_buffer(
-                buf, uid, tx_queue, client_socket, ctx, replication_connection
+                buf, client_socket, conn_ctx, exec_ctx, replication_connection
             )
 
     except Exception as e:
@@ -255,4 +206,4 @@ def handle_connection(
 
     # close socket and remove from pool before exiting thread
     client_socket.close()
-    ctx.pool.remove(uid)
+    exec_ctx.pool.remove(uid)

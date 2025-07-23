@@ -1,5 +1,6 @@
-from app.commands.base import ExecutionContext, ExecutionResult, RedisCommand
+from app.commands.base import ExecutionResult, RedisCommand, queueable
 from app.commands.parser import CommandArgParser
+from app.context import ConnectionContext, ExecutionContext
 from app.resp.types import NIL, BulkString
 from app.resp.types.array import Array
 from app.storage.in_memory.errors import KeyDoesNotExist, KeyExpired
@@ -22,10 +23,13 @@ class CommandGet(RedisCommand):
         parser.add_argument("key", 0)
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
+    @queueable
+    def exec(
+        self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs
+    ) -> ExecutionResult:
         key = self.args["key"]
         try:
-            value = ctx.storage.get(key)
+            value = exec_ctx.storage.get(key)
             return bytes(BulkString(bytes(value)))
         except (KeyDoesNotExist, KeyExpired):
             return NIL

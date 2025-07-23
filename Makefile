@@ -4,6 +4,11 @@ run:
 	./your_program.sh
 
 # make sure you activate your virtual environment that contains the package pytest
-.PHONY: test
-test:
-	pytest
+.PHONY: unit-test
+unit-test:
+	pipenv run pytest
+
+.PHONY: integration-test
+integration-test:
+	pipenv run python3 tests/integration_tests/entrypoint.py
+

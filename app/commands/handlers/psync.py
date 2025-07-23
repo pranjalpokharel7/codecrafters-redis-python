@@ -2,7 +2,7 @@ from typing import cast
 
 from app.commands.base import ExecutionResult, RedisCommand
 from app.commands.parser import CommandArgParser
-from app.context import ExecutionContext
+from app.context import ConnectionContext, ExecutionContext
 from app.info.sections.info_replication import InfoReplication
 from app.resp import BulkString
 from app.resp.types.array import Array
@@ -26,14 +26,16 @@ class CommandPsync(RedisCommand):
         parser.add_argument("offset", 1)
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
-        replication = cast(InfoReplication, ctx.info.get_section("replication"))
+    def exec(
+        self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs
+    ) -> ExecutionResult:
+        replication = cast(InfoReplication, exec_ctx.info.get_section("replication"))
         ack = bytes(
             SimpleString(
                 f"FULLRESYNC {replication.master_replid} {replication.master_repl_offset}".encode()
             )
         )
-        snapshot = ctx.rdb.create_snapshot(ctx.storage)
+        snapshot = exec_ctx.rdb.create_snapshot(exec_ctx.storage)
         db = f"${len(snapshot)}\r\n".encode() + snapshot
         return [ack, db]
 

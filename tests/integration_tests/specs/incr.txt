@@ -1,0 +1,3 @@
+SET count 10 | OK
+GET count | 10
+INCR count | 11

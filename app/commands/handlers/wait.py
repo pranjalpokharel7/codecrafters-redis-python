@@ -1,6 +1,6 @@
 from app.commands.base import ExecutionResult, RedisCommand
 from app.commands.parser import CommandArgParser
-from app.context import ExecutionContext
+from app.context import ConnectionContext, ExecutionContext
 
 
 class CommandWait(RedisCommand):
@@ -12,10 +12,11 @@ class CommandWait(RedisCommand):
     reached.
 
     Syntax:
+        WAIT numreplicas timeout
     """
 
     args: dict = {}
-    write: bool = False 
+    write: bool = False
 
     def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()
@@ -23,7 +24,9 @@ class CommandWait(RedisCommand):
         parser.add_argument("timeout", 1, map_fn=lambda v: int(v.decode()))
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
+    def exec(
+        self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs
+    ) -> ExecutionResult:
         # execution of wait command is handled at the master propagation section
         # the method is here just to maintain consistent API
         return None

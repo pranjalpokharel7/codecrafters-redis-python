@@ -1,5 +1,6 @@
-from app.commands.base import ExecutionContext, ExecutionResult, RedisCommand
+from app.commands.base import ExecutionResult, RedisCommand, queueable
 from app.commands.parser import CommandArgParser
+from app.context import ConnectionContext, ExecutionContext
 from app.resp.types import BulkString
 
 
@@ -25,14 +26,16 @@ class CommandInfo(RedisCommand):
             map_fn=lambda sections: [s.decode() for s in sections],
         )
         self.args = parser.parse_args(args_list)
-
-    def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
+    
+    @queueable
+    def exec(
+        self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs
+    ) -> ExecutionResult:
         if section_names := self.args["section"]:
-            sections = ctx.info.get_sections(section_names)
+            sections = exec_ctx.info.get_sections(section_names)
         else:
             # when no section is provided as argument, simply return all sections
-            sections = ctx.info.get_all_sections()
+            sections = exec_ctx.info.get_all_sections()
 
         info = b"".join(bytes(s) for s in sections.values())
         return bytes(BulkString(info))
-

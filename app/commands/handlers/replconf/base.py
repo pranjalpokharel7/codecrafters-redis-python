@@ -2,7 +2,7 @@ from app.commands.base import ExecutionResult, RedisCommand
 from app.commands.handlers.replconf.replconf_getack import CommandReplConfGetACK
 from app.commands.handlers.replconf.replconf_ack import CommandReplConfACK
 from app.commands.parser import CommandArgParser
-from app.context import ExecutionContext
+from app.context import ExecutionContext, ConnectionContext
 from app.resp import BulkString
 from app.resp.types.array import Array
 from app.resp.types.simple_string import SimpleString
@@ -26,12 +26,12 @@ class CommandReplConf(RedisCommand):
         parser.add_argument("value", 1)
         self.args = parser.parse_args(args_list)
 
-    def exec(self, ctx: ExecutionContext, **kwargs) -> ExecutionResult:
+    def exec(self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs) -> ExecutionResult:
         if self.args["key"].upper() == b"GETACK":
-            return CommandReplConfGetACK([self.args["value"]]).exec(ctx, **kwargs)
+            return CommandReplConfGetACK([self.args["value"]]).exec(exec_ctx, conn_ctx, **kwargs)
         
         if self.args["key"].upper() == b"ACK":
-            return CommandReplConfACK([self.args["value"]]).exec(ctx, **kwargs)
+            return CommandReplConfACK([self.args["value"]]).exec(exec_ctx, conn_ctx, **kwargs)
 
         return bytes(SimpleString(b"OK"))
 
