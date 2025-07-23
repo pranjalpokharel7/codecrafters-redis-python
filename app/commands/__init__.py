@@ -16,4 +16,5 @@ NAME_TO_COMMANDS_MAP: dict[bytes, type[RedisCommand]] = {
     b"SET": CommandSet,
     b"WAIT": CommandWait,
     b"MULTI": CommandMulti,
+    b"EXEC": CommandExec,
 }
