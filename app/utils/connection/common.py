@@ -141,7 +141,7 @@ def _handle_transaction_logic(
 
     elif isinstance(command, CommandDiscard):
         if not tx_queue.is_transaction_active():
-            return bytes(SimpleError(b"ERR EXEC without MULTI"))
+            return bytes(SimpleError(b"ERR DISCARD without MULTI"))
 
         tx_queue.flush()
         tx_queue.exit_transaction()
