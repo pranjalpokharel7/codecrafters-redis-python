@@ -14,7 +14,7 @@ class TransactionQueue:
     def __init__(self, uid: str) -> None:
         self._queue = queue.SimpleQueue()
         self._active = False
-        self._uid = uid # connection id to which the queue belongs to 
+        self._uid = uid  # connection id to which the queue belongs to
 
     def is_transaction_active(self):
         return self._active

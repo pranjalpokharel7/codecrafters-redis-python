@@ -11,10 +11,11 @@ from app.commands.handlers.replconf import CommandReplConf
 from app.commands.handlers.wait import CommandWait
 from app.context import ExecutionContext
 from app.info.sections.info_replication import ReplicationRole
-from app.queue import TransactionQueue
+from app.transaction.queue import TransactionQueue
 from app.resp.types.array import bytes_to_resp
 from app.resp.types.integer import Integer
 from app.resp.types.simple_error import SimpleError
+from app.resp.types.simple_string import SimpleString
 from app.utils.command_from_resp import command_from_resp_array
 
 MAX_BUF_SIZE = 512  # this should be a config parameter
@@ -141,9 +142,10 @@ def _process_and_update_buffer(
 
             if tx_queue.is_transaction_active():
                 tx_queue.add_command(command)
+                response = bytes(SimpleString(b"QUEUED"))
             else:
                 extra_args = {"connection_uid": connection_uid}
-                results = command.exec(ctx, **extra_args)
+                response = command.exec(ctx, **extra_args)
         except Exception as e:
             client_socket.sendall(bytes(SimpleError(str(e).encode())))
             logging.error(str(e))
@@ -151,7 +153,7 @@ def _process_and_update_buffer(
 
         if isinstance(command, CommandMulti):
             tx_queue.enter_transaction()
-            _send_response(client_socket, results)
+            _send_response(client_socket, response)
 
         elif isinstance(command, CommandExec):
             if not tx_queue.is_transaction_active():
@@ -161,7 +163,6 @@ def _process_and_update_buffer(
                 results = []
                 # also process all commands in the queue
                 for command in tx_queue.get_command():
-                    command = command_from_resp_array(resp_element)
                     extra_args = {"connection_uid": connection_uid}
                     result = command.exec(ctx, **extra_args)
 
@@ -178,8 +179,7 @@ def _process_and_update_buffer(
             _send_response(client_socket, response)
             
         elif not replication_connection or isinstance(command, CommandReplConf):
-            if not tx_queue.is_transaction_active():
-                _send_response(client_socket, results)
+            _send_response(client_socket, response)
 
         # handle logic related to replication and server roles
         _handle_replication_logic(
@@ -210,6 +210,8 @@ def handle_connection(
     """
     # use hostname:port as unique id for socket (for now)
     uid = f"{client_socket.getpeername()[0]}:{client_socket.getpeername()[1]}"
+    logging.info(f"processing connection {uid}")
+
     buf = buf or b""
     tx_queue = TransactionQueue(uid)
 
