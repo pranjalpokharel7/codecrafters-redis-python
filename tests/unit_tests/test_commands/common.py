@@ -1,12 +1,25 @@
+from unittest.mock import MagicMock
+
+from app.commands import RedisCommand
 from app.commands.base import ExecutionResult
 from app.config import Config
-from app.context import ExecutionContext, ConnectionContext
-from app.queue import TransactionQueue
+from app.context import ConnectionContext, ExecutionContext
 from app.info.base import Info
 from app.pool import ConnectionPool
 from app.storage.in_memory import SimpleStorage
 from app.storage.rdb import RDBManager
-from app.commands import RedisCommand
+
+
+def mock_socket():
+    """Returns a mock socket for testing.
+
+    Note: Only supports the getpeername() method for now since it is
+    required for connection context to be initialized. Add other methods
+    in the implementation as necessary.
+    """
+    mock_sock = MagicMock()
+    mock_sock.getpeername.return_value = ("127.0.0.1", 12345)
+    return mock_sock
 
 
 def _test_execution_context():
@@ -19,9 +32,7 @@ def _test_execution_context():
 
 
 def _test_connection_context():
-    uid = ""  # localhost:random port number?
-    tx_queue = TransactionQueue()
-    return ConnectionContext(uid, tx_queue)
+    return ConnectionContext(mock_socket())
 
 
 class CommandTestBase:

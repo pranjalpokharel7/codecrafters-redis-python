@@ -1,2 +1,0 @@
-- We are only supporting full synchronizaton - i.e. we don't look at offsets, but rather send the entire RDB file at any instance for the client to initialize.
-- 

@@ -37,6 +37,11 @@ class CommandPsync(RedisCommand):
         )
         snapshot = exec_ctx.rdb.create_snapshot(exec_ctx.storage)
         db = f"${len(snapshot)}\r\n".encode() + snapshot
+
+        # add connection to pool since only replicas send psync requests
+        exec_ctx.pool.add(conn_ctx.uid, conn_ctx.sock)
+        exec_ctx.info.add_to_connected_replica_count(1)
+
         return [ack, db]
 
     def __bytes__(self) -> bytes:

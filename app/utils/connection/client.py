@@ -2,7 +2,7 @@ import logging
 import socket
 import threading
 
-from app.context import ExecutionContext
+from app.context import ConnectionContext, ExecutionContext
 from app.utils.connection.common import handle_connection
 
 
@@ -12,7 +12,8 @@ def accept_client_connections(
     """Listens and accepts incoming client connections."""
     while True:
         client_socket, address = server_socket.accept()
+        conn_ctx = ConnectionContext(sock=client_socket)
         logging.info(f"client connected: {address}")
         threading.Thread(
-            target=handle_connection, args=(client_socket, execution_context)
+            target=handle_connection, args=(conn_ctx, execution_context)
         ).start()

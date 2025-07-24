@@ -1,18 +1,19 @@
-from dataclasses import dataclass
+import socket
+from dataclasses import dataclass, field
 
 from app.config import Config
 from app.info import Info
 from app.pool import ConnectionPool
+from app.queue import TransactionQueue
 from app.storage.in_memory.base import RedisStorage
 from app.storage.rdb.manager import RDBManager
-from app.queue import TransactionQueue
 
 
 @dataclass
 class ExecutionContext:
-    """
-    References to objects that are shared across all connections (threads).
-    """
+    """References to objects that are shared across all connections
+    (threads)."""
+
     storage: RedisStorage
     config: Config
     info: Info
@@ -24,5 +25,16 @@ class ExecutionContext:
 class ConnectionContext:
     """References to objects that are specific to a connection and are
     accessible as long as the connection is alive."""
-    uid: str
-    tx_queue: TransactionQueue
+
+    sock: socket.socket
+    is_replica_connection: bool = False
+    tx_queue: TransactionQueue = field(default_factory=TransactionQueue)
+    uid: str = field(init=False)
+
+    def __post_init__(self):
+        peer = self.sock.getpeername()
+        if isinstance(peer, tuple) and len(peer) >= 2: # ipv4/v6
+            host, port = peer[0], peer[1]
+            self.uid = f"{host}:{port}"
+        else: # unix socket
+            self.uid = str(peer)

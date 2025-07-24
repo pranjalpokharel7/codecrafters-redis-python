@@ -1,7 +1,7 @@
 import logging
 import threading
 
-from app.context import ExecutionContext
+from app.context import ConnectionContext, ExecutionContext
 from app.replication.slave import ReplicaSlave
 from app.utils.connection.common import handle_connection
 
@@ -10,7 +10,7 @@ def connect_to_master_replica(
     master_host: str,
     master_port: int,
     listening_port: int,
-    execution_context: ExecutionContext,
+    exec_ctx: ExecutionContext,
 ):
     """This function connects to a master replica and spawns a background
     thread listening for messages from the master."""
@@ -21,13 +21,16 @@ def connect_to_master_replica(
             listening_port=listening_port,
         )
 
-        replica.handshake(execution_context)
+        # establish connection with master
+        replica.handshake(exec_ctx)
+        conn_ctx = ConnectionContext(sock=replica.sock, is_replica_connection=True)
 
-        # all propagated commands from master will be listened to by this thread
+        # listen to incoming response from master on a background thread
         threading.Thread(
             target=handle_connection,
-            args=(replica.sock, execution_context, replica.buf, True),
+            args=(conn_ctx, exec_ctx, replica.buf),
         ).start()
 
     except Exception as e:
         logging.error(f"failed to connect to master replica: {e}")
+        raise e

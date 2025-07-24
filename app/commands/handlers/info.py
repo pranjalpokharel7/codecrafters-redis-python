@@ -43,6 +43,7 @@ class CommandInfo(RedisCommand):
 
     def __bytes__(self) -> bytes:
         array = [BulkString(b"INFO")]
-        for section_name in self.args["section"]:
-            array.append(BulkString(section_name.encode()))
+        if isinstance(self.args["section"], list):
+            for section_name in self.args["section"]:
+                array.append(BulkString(section_name.encode()))
         return bytes(Array(array))

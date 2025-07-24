@@ -27,7 +27,6 @@ class CommandExec(RedisCommand):
         else:
             tx_queue.disable()
             results = []
-            # also process all commands in the queue
             for command in tx_queue.get():
                 result = command.exec(exec_ctx, conn_ctx, **kwargs)
 

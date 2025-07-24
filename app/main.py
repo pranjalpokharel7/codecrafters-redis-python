@@ -1,6 +1,6 @@
 import logging
 import os
-import socket  # noqa: F401
+import socket
 import sys
 import threading
 
@@ -39,7 +39,7 @@ def main():
     info = Info(info_replication)
 
     # initialize execution context
-    execution_context = ExecutionContext(
+    exec_context = ExecutionContext(
         storage=storage,
         config=config,
         info=info,
@@ -49,7 +49,7 @@ def main():
 
     # start accepting client connections
     threading.Thread(
-        target=accept_client_connections, args=(server_socket, execution_context)
+        target=accept_client_connections, args=(server_socket, exec_context)
     ).start()
 
     # connect to master replica
@@ -58,7 +58,7 @@ def main():
             master_host=replicaof["host"],
             master_port=replicaof["port"],
             listening_port=args.port,
-            execution_context=execution_context,
+            exec_ctx=exec_context,
         )
 
 
