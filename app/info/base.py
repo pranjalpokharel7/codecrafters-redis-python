@@ -1,6 +1,6 @@
+import inspect
 import logging
 import threading
-from typing import Any
 
 from app.info.sections.info_replication import InfoReplication, ReplicationRole
 from app.info.types import InfoSection
@@ -27,74 +27,72 @@ class Info:
     errorstats: Redis error statistics
     """
 
-    _sections: dict[str, InfoSection]
+    _name_to_section_map: dict[str, InfoSection]
 
     def __init__(self, info_replication: InfoReplication | None = None) -> None:
         # required when we need to update the info
         self._lock = threading.RLock()
-
-        # init with default values for now
-        self._sections = {
-            "replication": info_replication or InfoReplication(),
+        self.replication = info_replication or InfoReplication()
+        self._name_to_section_map = {
+            name: attr
+            for name, attr in inspect.getmembers(self)
+            if isinstance(attr, InfoSection)
         }
 
-    def get_section(self, section_name: str) -> InfoSection:
+    def _get_section_by_name(self, section_name: str) -> InfoSection:
         """Get an information section by name.
 
-        Raises a ValueError if no section by the name exists.
+        Returns None if no such section exists.
         """
-        with self._lock:
-            section = self._sections.get(section_name)
-            if section is None:
-                raise ValueError(f"Unknown section: {section_name}")
-            return section
+        try:
+            return self._name_to_section_map[section_name]
+        except KeyError:
+            raise ValueError(f"unknown section: {section_name}")
 
-    def get_sections(self, section_names: list[str]) -> dict[str, InfoSection]:
-        """Gets a dict of section names and section based on the list of names
-        to filter from."""
+    # the design choice to serialize to bytes here is made to
+    # not allow users to modify the section through get methods
+    # of course they can access attributes directly,
+    # but the get methods hide the implementation well
+    def get_sections_by_names(self, section_names: list[str]) -> dict[str, bytes]:
+        """Gets a dict of section names and serialized sections based on the
+        list of names to filter from."""
         with self._lock:
             return {
-                name: self._sections[name]
+                name: bytes(self._get_section_by_name(name))
                 for name in section_names
-                if name in self._sections
+                if name in self._name_to_section_map
             }
 
-    def get_all_sections(self) -> dict[str, InfoSection]:
-        """
-        Returns all information sections.
-        """
+    def get_all_sections(self) -> dict[str, bytes]:
+        """Returns all information sections serialized as bytes."""
         with self._lock:
-            return self._sections
+            return {
+                name: bytes(section)
+                for name, section in self._name_to_section_map.items()
+            }
 
-    def get_value(self, section_name: str, attr_name: str):
-        # should we make this section agnostic? 
-        # using section names make this a bit more difficult to use api
-        with self._lock:
-            if section := self._sections.get(section_name):
-                return getattr(section, attr_name)
-
-    def update_value(self, section_name: str, attr_name: str, value: Any):
-        with self._lock:
-            if section := self._sections.get(section_name):
-                return setattr(section, attr_name, value)
-
-    # utility methods relevant to replication info
-    # it is advised to use general methods above as the ones below
-    # are for smoother experience with frequently required info
     def server_role(self) -> ReplicationRole:
+        """Returns whether the server is running as master or slave replica
+        (replication)."""
         with self._lock:
-            return getattr(self._sections["replication"], "role")
+            return self.replication.role
+
+    def add_to_connected_replica_count(self, delta: int):
+        """Add to current connected replica count (replication)."""
+        with self._lock:
+            new_value = max(0, self.replication.connected_slaves + delta)
+            self.replication.connected_slaves = new_value
 
     def get_offset(self) -> int:
+        """Get current offset (replication)."""
         with self._lock:
-            return getattr(self._sections["replication"], "master_repl_offset")
+            return self.replication.master_repl_offset
 
     def add_to_offset(self, delta: int) -> int:
+        """Add to current offset (replication)."""
         with self._lock:
-            current_offset = getattr(
-                self._sections["replication"], "master_repl_offset"
-            )
-            updated_offset = current_offset + delta
+            updated_offset = self.replication.master_repl_offset + delta
             logging.info(f"updating offset to {updated_offset}")
-            setattr(self._sections["replication"], "master_repl_offset", updated_offset)
+
+            self.replication.master_repl_offset = updated_offset
             return updated_offset

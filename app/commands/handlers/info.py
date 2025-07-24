@@ -16,7 +16,6 @@ class CommandInfo(RedisCommand):
     """
 
     args: dict
-    write: bool = False
 
     def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()
@@ -34,12 +33,12 @@ class CommandInfo(RedisCommand):
         self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs
     ) -> ExecutionResult:
         if section_names := self.args["section"]:
-            sections = exec_ctx.info.get_sections(section_names)
+            sections = exec_ctx.info.get_sections_by_names(section_names)
         else:
             # when no section is provided as argument, simply return all sections
             sections = exec_ctx.info.get_all_sections()
 
-        info = b"".join(bytes(s) for s in sections.values())
+        info = b"".join(sections.values())
         return bytes(BulkString(info))
 
     def __bytes__(self) -> bytes:

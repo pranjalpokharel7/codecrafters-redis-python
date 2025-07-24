@@ -47,14 +47,13 @@ def main():
         pool=ConnectionPool(),
     )
 
+    # start accepting client connections
     threading.Thread(
         target=accept_client_connections, args=(server_socket, execution_context)
     ).start()
 
-    # ideally we would want to set this up before client connections are established
-    # but the tester tries to invoke commands as soon as the handshake is completed
-    # which leads to race conditions
-    if replicaof:
+    # connect to master replica
+    if info.server_role() == ReplicationRole.SLAVE:
         connect_to_master_replica(
             master_host=replicaof["host"],
             master_port=replicaof["port"],

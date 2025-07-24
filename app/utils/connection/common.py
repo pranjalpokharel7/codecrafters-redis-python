@@ -11,7 +11,7 @@ from app.resp.types.array import bytes_to_resp
 from app.resp.types.simple_error import SimpleError
 from app.utils.command_from_resp import command_from_resp_array
 
-MAX_BUF_SIZE = 512  # this should be a config parameter?
+MAX_BUF_SIZE = 512
 
 
 def _send_response(client_socket: socket.socket, response: ExecutionResult):
@@ -39,6 +39,7 @@ def _handle_replication_logic(
         # replicas make psync requests
         if isinstance(command, CommandPsync):
             exec_ctx.pool.add(conn_ctx.uid, client_socket)
+            exec_ctx.info.add_to_connected_replica_count(1)
     else:
         # for slave, update offset on commands received from master
         if replication_connection:
@@ -140,4 +141,7 @@ def handle_connection(
 
     # close socket and remove from pool before exiting thread
     client_socket.close()
-    exec_ctx.pool.remove(uid)
+
+    if replication_connection:
+        exec_ctx.pool.remove(uid)
+        exec_ctx.info.add_to_connected_replica_count(-1)

@@ -1,9 +1,4 @@
-"""This file will contain logic to handle replica in slave mode.
-TODO: create a new file and rewrite logic using streaming reader.
-
-Notes:
-    - Slave replicas are for read only
-"""
+"""This file will contain logic to handle replica in slave mode."""
 
 import logging
 import socket
@@ -14,7 +9,7 @@ from app.commands.handlers.psync import CommandPsync
 from app.commands.handlers.replconf import CommandReplConf
 from app.context import ExecutionContext
 from app.replication.errors import HandshakeFailed
-from app.resp.types import SimpleString, BulkString
+from app.resp.types import SimpleString
 
 
 class ReplicaSlave:
@@ -40,15 +35,11 @@ class ReplicaSlave:
         # create a persistent TCP connection to master replica
         self.sock = socket.create_connection((master_host, master_port))
 
-    def _assert_response(self, received: bytes, expected: bytes):
-        if received != expected:
-            raise HandshakeFailed(f"Handshake failed: {received!r}")
-
     def _send_command(self, command: RedisCommand) -> bytes:
         req = bytes(command)
         logging.info(f"sending command to master replica: {req!r}")
         self.sock.sendall(req)
-        return self._recv_response()
+        return self._recv_until_carriage_return()
 
     def _send_command_and_expect(self, command: RedisCommand, expected: bytes):
         response = self._send_command(command)
@@ -64,27 +55,20 @@ class ReplicaSlave:
         self.buf = self.buf[length:]
         return result
 
-    # TODO: each section should be parsed differently, compared to simply using recv
-    def _recv_response(self) -> bytes:
-        # implement this as streaming reader!?
+    def _recv_until_carriage_return(self) -> bytes:
         while True:
             chunk = self.sock.recv(1024 * 4)
             if not chunk:
                 raise HandshakeFailed("connection closed unexpectedly")
-
             self.buf += chunk
 
-            # the code below shouldn't be a part of recv_response
-
-            # TODO: instead of carriage return tricks, use RESP type to parse here
-            # use the bytes to resp function, you can always advance buffer that way too
             pos = self.buf.find(b"\r\n")
             if pos != -1:
                 return self._read_exact_length_and_advance(pos + 2)
 
     def handshake(self, ctx: ExecutionContext):
         """Establish handshake with master replica."""
-        # send ping to master server
+        # send PING
         self._send_command_and_expect(CommandPing([]), b"+PONG\r\n")
 
         # send REPLCONF messages
@@ -97,25 +81,26 @@ class ReplicaSlave:
             b"+OK\r\n",
         )
 
-        # Since this is the first time the replica is connecting to the master,
-        # replication ID will be ? (a question mark) and offset will be -1
-        res = self._send_command(CommandPsync([b"?", b"-1"]))
-        master_replica_info = SimpleString(res).value.decode().split(" ")
+        # parse offset - "+FULLSYNC <replid> <offset>\r\n"
+        info, pos = SimpleString.from_bytes(
+            self._send_command(CommandPsync([b"?", b"-1"]))
+        )
+        master_replica_info = info.value.decode().split(" ")
         master_offset = int(master_replica_info[2])
         ctx.info.add_to_offset(master_offset)
 
-        # TODO: use bulk string for parsing
-
-        if self.buf.startswith(b"$"):  # buffer already contains rdb contents
+        # parse rdb - $<rdb_length>\r\n<rdb>
+        if self.buf.startswith(b"$"):
+            # buffer already contains rdb contents
             pos = self.buf.find(b"\r\n")
             length_buffer = self._read_exact_length_and_advance(pos + 2)
         else:
-            length_buffer = self._recv_response()
+            length_buffer = self._recv_until_carriage_return()
 
         # skip starting byte and trailing carriage return
-        rdb_size = int(length_buffer[1:-2].decode())
-        rdb_buffer = self._read_exact_length_and_advance(rdb_size)
-        ctx.rdb.restore_from_snapshot(rdb_buffer, ctx.storage)
+        rdb_length = int(length_buffer[1:-2].decode())
+        rdb_snapshot = self._read_exact_length_and_advance(rdb_length)
+        ctx.rdb.restore_from_snapshot(rdb_snapshot, ctx.storage)
 
         logging.info(
             "received and processed RDB file: completed handshake with master server"

@@ -18,7 +18,6 @@ class CommandReplConf(RedisCommand):
     """
 
     args: dict
-    write: bool = False
 
     def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()
@@ -26,12 +25,18 @@ class CommandReplConf(RedisCommand):
         parser.add_argument("value", 1)
         self.args = parser.parse_args(args_list)
 
-    def exec(self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs) -> ExecutionResult:
+    def exec(
+        self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs
+    ) -> ExecutionResult:
         if self.args["key"].upper() == b"GETACK":
-            return CommandReplConfGetACK([self.args["value"]]).exec(exec_ctx, conn_ctx, **kwargs)
-        
+            return CommandReplConfGetACK([self.args["value"]]).exec(
+                exec_ctx, conn_ctx, **kwargs
+            )
+
         if self.args["key"].upper() == b"ACK":
-            return CommandReplConfACK([self.args["value"]]).exec(exec_ctx, conn_ctx, **kwargs)
+            return CommandReplConfACK([self.args["value"]]).exec(
+                exec_ctx, conn_ctx, **kwargs
+            )
 
         return bytes(SimpleString(b"OK"))
 

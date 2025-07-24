@@ -18,7 +18,7 @@ class CommandPsync(RedisCommand):
     """
 
     args: dict
-    write: bool = False
+    
 
     def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()
@@ -29,7 +29,7 @@ class CommandPsync(RedisCommand):
     def exec(
         self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs
     ) -> ExecutionResult:
-        replication = cast(InfoReplication, exec_ctx.info.get_section("replication"))
+        replication = cast(InfoReplication, exec_ctx.info._get_section_by_name("replication"))
         ack = bytes(
             SimpleString(
                 f"FULLRESYNC {replication.master_replid} {replication.master_repl_offset}".encode()

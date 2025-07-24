@@ -7,3 +7,5 @@ class TestCommandInfo(CommandTestBase):
         result = self.execute_command(cmd)
         assert isinstance(result, bytes)
         assert b"role:master" in result
+        assert b"master_replid" in result
+        assert b"master_repl_offset" in result

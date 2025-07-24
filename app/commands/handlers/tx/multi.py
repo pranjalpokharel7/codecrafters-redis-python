@@ -14,7 +14,6 @@ class CommandMulti(RedisCommand):
     """
 
     args: dict
-    write: bool = False  # is this writeable?
 
     def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()

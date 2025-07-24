@@ -13,7 +13,7 @@ class CommandConfig(RedisCommand):
     """
 
     args: dict
-    write: bool = False
+
     active_sub_command: RedisCommand
     sub_commands: dict[bytes, type[RedisCommand]] = {b"GET": CommandConfigGet}
 

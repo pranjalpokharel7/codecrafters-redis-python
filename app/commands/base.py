@@ -16,7 +16,6 @@ class RedisCommand(ABC):
     """Base class that exposes API for command handlers."""
 
     args: dict  # arguments to the command, labeled as "argument name": "argument value"
-    write: bool  # flag to denote whether the command makes write changes
 
     @abstractmethod
     def __init__(self, args_list: list[bytes]):

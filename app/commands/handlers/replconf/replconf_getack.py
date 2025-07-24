@@ -15,14 +15,15 @@ class CommandReplConfGetACK(RedisCommand):
     """
 
     args: dict
-    write: bool = False
 
     def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()
         parser.add_argument("offset", 0)
         self.args = parser.parse_args(args_list)
 
-    def exec(self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs) -> ExecutionResult:
+    def exec(
+        self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs
+    ) -> ExecutionResult:
         # hardcoded response for now
         current_offset = exec_ctx.info.get_offset()
         return bytes(

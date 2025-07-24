@@ -1,7 +1,10 @@
 import argparse
 
 
-def _parse_replica_info(value: str) -> dict:
+def _parse_replicaof(value: str) -> dict:
+    """
+    Parses replicaof argument and returns host and port.
+    """
     parts = value.strip().split()
     if len(parts) != 2:
         raise argparse.ArgumentTypeError("replicaof must be '<HOST> <PORT>'")
@@ -13,7 +16,10 @@ def _parse_replica_info(value: str) -> dict:
     return {"host": host, "port": int(port)}
 
 
-def get_arg_parser():
+def get_arg_parser() -> argparse.ArgumentParser:
+    """
+    Returns argument parser for the app.
+    """
     parser = argparse.ArgumentParser(description="Redis clone server options")
 
     parser.add_argument(
@@ -38,7 +44,7 @@ def get_arg_parser():
 
     parser.add_argument(
         "--replicaof",
-        type=_parse_replica_info,
+        type=_parse_replicaof,
         required=False,
         default=None,
         help="Specify master redis server to follow",

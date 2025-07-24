@@ -20,7 +20,7 @@ class CommandKeys(RedisCommand):
     """
 
     args: dict
-    write: bool = False
+    
 
     def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()
