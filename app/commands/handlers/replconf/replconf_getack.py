@@ -1,5 +1,5 @@
 from app.commands.base import ExecutionResult, RedisCommand
-from app.commands.parser import CommandArgParser
+from app.commands.args.parser import CommandArgParser
 from app.context import ExecutionContext, ConnectionContext
 from app.resp import BulkString
 from app.resp.types.array import Array

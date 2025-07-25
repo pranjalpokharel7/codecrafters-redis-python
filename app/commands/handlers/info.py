@@ -1,7 +1,7 @@
-from app.commands.arg_mapping import map_to_str_list
+from app.commands.args.mapping import map_to_str_list
 from app.commands.base import ExecutionResult, RedisCommand
 from app.commands.decorators import queueable
-from app.commands.parser import CommandArgParser
+from app.commands.args.parser import CommandArgParser
 from app.context import ConnectionContext, ExecutionContext
 from app.resp.types import BulkString
 from app.resp.types.array import Array

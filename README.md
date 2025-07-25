@@ -53,8 +53,6 @@ Of note are the folders,
 ├── __init__.py
 ├── logger.py # logging config
 ├── main.py # entrypoint
-├── pool.py # connection pool
-├── __pycache__
 ├── queue.py # wrapper around python queue (used for redis transactions)
 ├── replication # logic specific to the server running as a replica
 ├── resp # Redis Serialization Protocol (RESP)
@@ -62,8 +60,8 @@ Of note are the folders,
 └── utils # utils used by the main app
 ```
 
-Each sub module within app usually contains some notable files as,
-- `base.py`: Contains definitions of abstract base classes, decorators and generics that are used by other files within the submodule.
+Each sub module within app usually contains some common file patterns as,
+- `base.py`: Contains definitions of base classes and types that are used by other files within the submodule.
 - `errors.py`: Defines errors that are specific to the submodule.
 - `constants.py`: Constants that are declared at a single place to make them reusable.
 - `parser.py`: Parsing logic required by the submodule.

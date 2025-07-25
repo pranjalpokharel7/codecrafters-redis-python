@@ -1,5 +1,5 @@
 """This file will contain logic to perform initial handshake with the master as
-a slave replica."""
+a replica."""
 
 import logging
 import socket
@@ -8,11 +8,11 @@ from app.commands.base import RedisCommand
 from app.commands.handlers.ping import CommandPing
 from app.commands.handlers.psync import CommandPsync
 from app.commands.handlers.replconf import CommandReplConf
-from app.replica.errors import HandshakeFailed
+from app.replication.errors import HandshakeFailed
 from app.resp.types import SimpleString
 
 
-class ReplicaSlave:
+class ReplicaHandshakeClient:
     # host and port of the master replica
     master_host: str
     master_port: int

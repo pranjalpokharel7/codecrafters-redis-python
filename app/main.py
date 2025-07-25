@@ -10,7 +10,7 @@ from app.context import ExecutionContext
 from app.info import Info
 from app.info.sections.info_replication import InfoReplication, ReplicationRole
 from app.logger import *  # noqa: F403
-from app.replica.pool import ReplicaConnectionPool
+from app.replication.pool import ReplicaConnectionPool
 from app.storage.in_memory import ThreadSafeStorage as Storage
 from app.storage.rdb import RDBManager
 from app.connection import accept_client_connections, connect_to_master_replica

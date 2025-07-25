@@ -1,7 +1,7 @@
 from app.commands.base import ExecutionResult, RedisCommand
 from app.commands.decorators import broadcast, queueable
 from app.commands.handlers import CommandSet
-from app.commands.parser import CommandArgParser
+from app.commands.args.parser import CommandArgParser
 from app.context import ConnectionContext, ExecutionContext
 from app.resp.types import Integer
 from app.resp.types.array import Array

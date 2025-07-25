@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 
 from app.config import Config
 from app.info import Info
-from app.replica.pool import ReplicaConnectionPool
+from app.replication.pool import ReplicaConnectionPool
 from app.queue import TransactionQueue
 from app.storage.in_memory.base import RedisStorage
 from app.storage.rdb.manager import RDBManager

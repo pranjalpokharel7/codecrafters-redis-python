@@ -3,7 +3,7 @@ TODO: how do I propagate transactions to replicas? will this be our new test?
 """
 
 from app.commands.base import ExecutionResult, RedisCommand
-from app.commands.parser import CommandArgParser
+from app.commands.args.parser import CommandArgParser
 from app.context import ConnectionContext, ExecutionContext
 from app.resp.types.array import Array
 from app.resp.types.simple_error import SimpleError

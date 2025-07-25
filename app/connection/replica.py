@@ -2,7 +2,7 @@ import logging
 import threading
 
 from app.context import ConnectionContext, ExecutionContext
-from app.replica.slave import ReplicaSlave
+from app.replication.handshake import ReplicaHandshakeClient
 from app.connection.common import handle_connection
 
 
@@ -15,25 +15,25 @@ def connect_to_master_replica(
     """This function connects to a master replica and spawns a background
     thread listening for messages from the master."""
     try:
-        replica = ReplicaSlave(
+        client = ReplicaHandshakeClient(
             master_host=master_host,
             master_port=master_port,
             listening_port=listening_port,
         )
 
         # establish connection with master and update offset and in-memory storage
-        master_offset, master_rdb_snapshot = replica.handshake()
+        master_offset, master_rdb_snapshot = client.handshake()
         exec_ctx.info.add_to_offset(master_offset)
         exec_ctx.rdb.restore_storage_from_snapshot(
             master_rdb_snapshot, exec_ctx.storage
         )
 
-        conn_ctx = ConnectionContext(sock=replica.sock, is_replica_connection=True)
+        conn_ctx = ConnectionContext(sock=client.sock, is_replica_connection=True)
 
         # listen to incoming response from master on a background thread
         threading.Thread(
             target=handle_connection,
-            args=(conn_ctx, exec_ctx, replica.buf),
+            args=(conn_ctx, exec_ctx, client.buf),
         ).start()
 
     except Exception as e:
