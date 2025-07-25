@@ -60,7 +60,7 @@ def load_commands(file_path: str, delimiter="|") -> list[tuple[list[str], str]]:
                 continue
             parts = [p.strip() for p in line.split(delimiter)]
             cmd = parts[0].split()
-            expected = parts[1] if len(parts) > 1 else None
+            expected = parts[1].replace("\\n", "\n") if len(parts) > 1 else None
             commands.append((cmd, expected))
 
     return commands
@@ -75,6 +75,7 @@ def run_test_file(file_path: str):
             assert output == expected, (
                 f"Expected '{expected}' but got '{output}' for command {' '.join(cmd)}"
             )
+
     print(f"=== {file_path} PASSED ===")
 
 

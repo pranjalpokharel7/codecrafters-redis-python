@@ -1,4 +1,19 @@
 repos:
+- repo: local
+  hooks:
+    - id: unit-tests
+      name: Run Unit Tests
+      entry: make unit-test
+      language: system
+      pass_filenames: false
+
+    - id: integration-tests
+      name: Run Integration Tests
+      entry: make integration-test
+      language: system
+      pass_filenames: false
+
+
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v2.3.0
     hooks:

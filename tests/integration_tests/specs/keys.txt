@@ -1,0 +1,4 @@
+SET key1 val1 | OK
+SET key2 val2 | OK
+SET key3 val3 | OK
+KEYS key* | key1\nkey2\nkey3

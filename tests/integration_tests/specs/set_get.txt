@@ -1,0 +1,4 @@
+SET mykey myvalue | OK
+GET mykey | myvalue
+SET anotherkey 123 | OK
+GET anotherkey | 123
