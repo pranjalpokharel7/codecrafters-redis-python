@@ -11,4 +11,3 @@ unit-test:
 .PHONY: integration-test
 integration-test:
 	pipenv run python3 tests/integration_tests/entrypoint.py
-

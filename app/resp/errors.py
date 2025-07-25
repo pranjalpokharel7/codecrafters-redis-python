@@ -12,4 +12,3 @@ class InvalidStartingByte(ParsingError):
 class EmptyBuffer(ParsingError):
     def __init__(self):
         super().__init__("tried to parse empty buffer")
-

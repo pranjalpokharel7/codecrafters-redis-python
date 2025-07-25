@@ -1,0 +1,16 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.3.0
+    hooks:
+    -   id: check-yaml
+    -   id: end-of-file-fixer
+    -   id: trailing-whitespace
+
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.12.5
+  hooks:
+    - id: ruff-check
+      args: [ --fix, --ignore, F405, --target-version, py311 ]
+      language_version: "3.11"
+    - id: ruff-format
+      language_version: "3.11"

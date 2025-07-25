@@ -1,6 +1,7 @@
 from app.commands.handlers import CommandConfig
 from tests.unit_tests.test_commands.common import CommandTestBase
 
+
 class TestCommandConfig(CommandTestBase):
     def test_config_get_single_param(self):
         self.exec_ctx.config.dir = "/data"

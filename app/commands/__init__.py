@@ -1,6 +1,6 @@
 from app.commands.base import RedisCommand
 
-from .handlers import *
+from .handlers import *  # noqa: F403
 
 # map from command name in bytes to their constructor class
 NAME_TO_COMMANDS_MAP: dict[bytes, type[RedisCommand]] = {

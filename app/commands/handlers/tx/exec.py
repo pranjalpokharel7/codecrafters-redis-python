@@ -19,7 +19,9 @@ class CommandExec(RedisCommand):
         parser = CommandArgParser()
         self.args = parser.parse_args(args_list)
 
-    def exec(self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs) -> ExecutionResult:
+    def exec(
+        self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs
+    ) -> ExecutionResult:
         tx_queue = conn_ctx.tx_queue
         if not tx_queue.is_enabled():
             return bytes(SimpleError(b"ERR EXEC without MULTI"))

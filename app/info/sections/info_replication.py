@@ -25,9 +25,9 @@ class InfoReplication(InfoSection):
     """
     Master/replica replication information.
     """
+
     title: str = "# Replication"
     role: ReplicationRole = ReplicationRole.MASTER  # role of the server
     connected_slaves: int = 0  # number of connected replicas
     master_replid: str = field(default_factory=replid)  # replication ID of the master
     master_repl_offset: int = 0  # the server's current replication offset
-

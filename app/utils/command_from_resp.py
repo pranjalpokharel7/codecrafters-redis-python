@@ -9,7 +9,7 @@ from app.resp.types import Array, RespElement
 
 def command_from_resp_array(parsed_input: RespElement) -> RedisCommand:
     """Parse a RESP array and return a corresponding RedisCommand instance.
-    
+
     Raises:
         ValueError: If the input is not a RESP array.
         CommandEmpty: If the array is empty.
@@ -31,5 +31,3 @@ def command_from_resp_array(parsed_input: RespElement) -> RedisCommand:
 
     # command not recognized (or not implemented yet) internally
     raise UnrecognizedCommand(command_name)
-
-

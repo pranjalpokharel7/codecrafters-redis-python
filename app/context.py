@@ -33,8 +33,8 @@ class ConnectionContext:
 
     def __post_init__(self):
         peer = self.sock.getpeername()
-        if isinstance(peer, tuple) and len(peer) >= 2: # ipv4/v6
+        if isinstance(peer, tuple) and len(peer) >= 2:  # ipv4/v6
             host, port = peer[0], peer[1]
             self.uid = f"{host}:{port}"
-        else: # unix socket
+        else:  # unix socket
             self.uid = str(peer)

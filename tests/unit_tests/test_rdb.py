@@ -68,5 +68,7 @@ def test_kv_with_expiry_fc():
 
 
 def test_checksum_stored():
-    rdb = RDBParser().parse(get_rdb_reader(checksum=b"\x01\x02\x03\x04\x05\x06\x07\x08"))
+    rdb = RDBParser().parse(
+        get_rdb_reader(checksum=b"\x01\x02\x03\x04\x05\x06\x07\x08")
+    )
     assert rdb.checksum == b"\x01\x02\x03\x04\x05\x06\x07\x08"

@@ -1,4 +1,5 @@
-from app.commands.base import ExecutionResult, RedisCommand, propagate, queueable
+from app.commands.base import ExecutionResult, RedisCommand
+from app.commands.decorators import propagate, queueable
 from app.commands.handlers import CommandSet
 from app.commands.parser import CommandArgParser
 from app.context import ConnectionContext, ExecutionContext

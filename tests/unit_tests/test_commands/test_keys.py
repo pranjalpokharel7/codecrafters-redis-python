@@ -2,19 +2,22 @@ from app.commands import CommandKeys
 from app.storage.types import RedisValue
 from tests.unit_tests.test_commands.common import CommandTestBase
 
+
 class TestCommandKeys(CommandTestBase):
     def setup_method(self):
         super().setup_method()
-        self.exec_ctx.storage.restore({
-            b"hello": RedisValue(b"1"),
-            b"hxllo": RedisValue(b"2"),
-            b"halo": RedisValue(b"3"),
-            b"hallo": RedisValue(b"4"),
-            b"hillo": RedisValue(b"5"),
-            b"hbllo": RedisValue(b"6"),
-            b"hcllo": RedisValue(b"7"),
-            b"foo": RedisValue(b"8"),
-        })
+        self.exec_ctx.storage.restore(
+            {
+                b"hello": RedisValue(b"1"),
+                b"hxllo": RedisValue(b"2"),
+                b"halo": RedisValue(b"3"),
+                b"hallo": RedisValue(b"4"),
+                b"hillo": RedisValue(b"5"),
+                b"hbllo": RedisValue(b"6"),
+                b"hcllo": RedisValue(b"7"),
+                b"foo": RedisValue(b"8"),
+            }
+        )
 
     def test_keys_exact_match(self):
         cmd = CommandKeys([b"hello"])

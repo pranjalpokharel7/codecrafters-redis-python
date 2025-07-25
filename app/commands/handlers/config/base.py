@@ -1,4 +1,5 @@
-from app.commands.base import ExecutionResult, RedisCommand, queueable
+from app.commands.base import ExecutionResult, RedisCommand
+from app.commands.decorators import queueable
 from app.commands.errors import MissingSubcommand, UnrecognizedCommand
 from app.commands.handlers.config.config_get import CommandConfigGet
 from app.context import ConnectionContext, ExecutionContext

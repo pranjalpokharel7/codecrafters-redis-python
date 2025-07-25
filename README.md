@@ -1,60 +1,95 @@
-[![progress-banner](https://backend.codecrafters.io/progress/redis/31b787d8-d049-4772-913b-56be8c4a5009)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
+# Codecrafters Redis
 
-This is a starting point for Python solutions to the
-["Build Your Own Redis" Challenge](https://codecrafters.io/challenges/redis).
+Solving the [codecrafters redis challenge](https://app.codecrafters.io/courses/redis/overview) in Python.
 
-In this challenge, you'll build a toy Redis clone that's capable of handling
-basic commands like `PING`, `SET` and `GET`. Along the way we'll learn about
-event loops, the Redis protocol and more.
+## Instructions
 
-**Note**: If you're viewing this repo on GitHub, head over to
-[codecrafters.io](https://codecrafters.io) to try the challenge.
-
-# Passing the first stage
-
-The entry point for your Redis implementation is in `app/main.py`. Study and
-uncomment the relevant code, and push your changes to pass the first stage:
-
-```sh
-git commit -am "pass 1st stage" # any msg
-git push origin master
+Simply use make to run server.
+```bash
+# starts the your_program.sh script.
+make
 ```
 
-That's all!
+We use pipenv to initialize our development environment.
 
-# Stage 2 & beyond
-
-Note: This section is for stages 2 and beyond.
-
-1. Ensure you have `python (3.13)` installed locally
-1. Run `./your_program.sh` to run your Redis server, which is implemented in
-   `app/main.py`.
-1. Commit your changes and run `git push origin master` to submit your solution
-   to CodeCrafters. Test output will be streamed to your terminal.
-
-# Troubleshooting
-
-## module `socket` has no attribute `create_server`
-
-When running your server locally, you might see an error like this:
-
-```
-Traceback (most recent call last):
-  File "/.../python3.7/runpy.py", line 193, in _run_module_as_main
-    "__main__", mod_spec)
-  File "/.../python3.7/runpy.py", line 85, in _run_code
-    exec(code, run_globals)
-  File "/app/app/main.py", line 11, in <module>
-    main()
-  File "/app/app/main.py", line 6, in main
-    s = socket.create_server(("localhost", 6379), reuse_port=True)
-AttributeError: module 'socket' has no attribute 'create_server'
+```bash
+# install necessary requirements
+pipenv install
 ```
 
-This is because `socket.create_server` was introduced in Python 3.8, and you
-might be running an older version.
+If you don't want to use pipenv, simply read the list of requirements present in the Pipfile and make sure those packages are available on your path.
 
-You can fix this by installing Python 3.8 locally and using that.
+## Root Structure
 
-If you'd like to use a different version of Python, change the `language_pack`
-value in `codecrafters.yml`.
+```bash
+.
+├── app # main app directory
+├── CODECRAFTERS_README.md
+├── codecrafters.yml
+├── Makefile
+├── Pipfile
+├── Pipfile.lock
+├── pyproject.toml
+├── README.md
+├── spawn_replica.sh # run multiple instances of app as 'replicas'
+├── tests # tests folder
+├── watch.sh # run app as a hot-reload server (requires executable 'entr' in path)
+└── your_program.sh # actual script to run app
+```
+
+Of note are the folders,
+- `app`: Actual logic of the app module which is run as our redis server.
+- `tests`: Tests directory that contains unit and integration tests used during development.
+
+## App Directory
+
+```bash
+.
+├── args.py # parsing of command line arguments
+├── commands # handlers for specific redis commands (eg, handlers/get.py handles command GET)
+├── config.py # redis server config
+├── context.py # context required for execution of commands
+├── info # redis server info and stats
+├── __init__.py
+├── logger.py # logging config
+├── main.py # entrypoint
+├── pool.py # connection pool
+├── __pycache__
+├── queue.py # wrapper around python queue (used for redis transactions)
+├── replication # logic specific to the server running as a replica
+├── resp # Redis Serialization Protocol (RESP)
+├── storage # in-memory storage and rdb config
+└── utils # utils used by the main app
+```
+
+Each sub module within app usually contains some notable files as,
+- `base.py`: Contains definitions of abstract base classes, decorators and generics that are used by other files within the submodule.
+- `errors.py`: Defines errors that are specific to the submodule.
+- `constants.py`: Constants that are declared at a single place to make them reusable.
+- `parser.py`: Parsing logic required by the submodule.
+
+## Running Tests
+
+You can use the Makefile to run tests.
+
+```bash
+# run unit tests
+make unit-test
+
+# run integration tests
+make integration-test
+```
+
+We use `pytest` for unit tests, make sure it is installed in your environment.
+
+## Contributing
+
+This repo is mostly for self-learning and so I'm not currently accepting any contributions. If you do make a PR, make sure to install pre-commit before making any changes.
+
+```bash
+# install pre-commit so linting errors are caught before commit
+pre-commit install
+
+# you can also run the hooks manually
+pre-commit run --all-files
+```

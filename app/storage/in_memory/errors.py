@@ -18,9 +18,9 @@ class KeyExpired(StorageException):
 
 class InvalidKeyFormat(StorageException):
     def __init__(self) -> None:
-        super().__init__(f"invalid key format, expected bytes")
+        super().__init__("invalid key format, expected bytes")
 
 
 class InvalidValueFormat(StorageException):
     def __init__(self) -> None:
-        super().__init__(f"invalid value format, expected RedisValue")
+        super().__init__("invalid value format, expected RedisValue")

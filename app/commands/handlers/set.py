@@ -2,7 +2,8 @@ import logging
 from time import time
 
 from app.commands.arg_mapping import map_to_str
-from app.commands.base import ExecutionResult, RedisCommand, propagate, queueable
+from app.commands.base import ExecutionResult, RedisCommand
+from app.commands.decorators import queueable, propagate
 from app.commands.parser import CommandArgParser
 from app.context import ConnectionContext, ExecutionContext
 from app.resp.types import NIL
@@ -67,13 +68,12 @@ class CommandSet(RedisCommand):
         expiry: str | None = self.args["expiry"]
         expiry_value: str | None = self.args["expiry_value"]
 
-        current_millis = lambda: int(time() * 1000)
         if expiry and expiry_value:
             match expiry.upper():
                 case "EX":
-                    return current_millis() + int(expiry_value) * 1000
+                    return int(time() * 1000) + int(expiry_value) * 1000
                 case "PX":
-                    return current_millis() + int(expiry_value)
+                    return int(time() * 1000) + int(expiry_value)
                 case "EXAT":
                     return int(expiry_value) * 1000
                 case "PXAT":

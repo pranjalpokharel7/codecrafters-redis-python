@@ -1,7 +1,8 @@
-import pytest 
+import pytest
 from app.commands import CommandIncr
 from app.storage.types import RedisValue
 from tests.unit_tests.test_commands.common import CommandTestBase
+
 
 class TestCommandIncr(CommandTestBase):
     @pytest.mark.parametrize(

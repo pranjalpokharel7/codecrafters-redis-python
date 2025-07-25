@@ -1,4 +1,5 @@
-from app.commands.base import ExecutionResult, RedisCommand, queueable
+from app.commands.base import ExecutionResult, RedisCommand
+from app.commands.decorators import queueable
 from app.commands.parser import CommandArgParser
 from app.context import ConnectionContext, ExecutionContext
 from app.resp.types import Array, BulkString
@@ -20,7 +21,6 @@ class CommandKeys(RedisCommand):
     """
 
     args: dict
-    
 
     def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()

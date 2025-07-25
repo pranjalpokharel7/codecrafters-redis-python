@@ -54,7 +54,7 @@ class ConnectionPool:
                 if conn.last_ack_offset >= min_offset:
                     continue
 
-                # if connection has been waiting for offset acknowledgement for 
+                # if connection has been waiting for offset acknowledgement for
                 # less than waiting time skip sending another ack request for now
                 if (
                     conn.awaiting_ack_offset

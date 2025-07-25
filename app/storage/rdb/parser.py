@@ -129,7 +129,7 @@ class RDBParser:
                 return int.from_bytes(reader.read(8), "little")
         else:
             # special format encoding that contains different rules on how to parse length
-            raise NotImplemented
+            raise NotImplementedError
 
     def _read_string_encoding(
         self, reader: RDBReader

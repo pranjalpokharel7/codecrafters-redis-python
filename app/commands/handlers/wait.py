@@ -23,7 +23,6 @@ class CommandWait(RedisCommand):
     """
 
     args: dict = {}
-    
 
     def __init__(self, args_list: list[bytes]):
         parser = CommandArgParser()

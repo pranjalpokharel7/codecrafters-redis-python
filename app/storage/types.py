@@ -22,7 +22,7 @@ class RedisEncoding(IntEnum):
 @dataclass
 class RedisValue:
     raw_bytes: bytes  # actual value in raw bytes (rename this to raw_bytes?)
-    expiry: int | None = None # unix timestamp when the key-value pair expires
+    expiry: int | None = None  # unix timestamp when the key-value pair expires
     encoding: RedisEncoding = RedisEncoding.STRING  # default string encoding
 
     def __bytes__(self):

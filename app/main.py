@@ -9,7 +9,7 @@ from app.config import Config
 from app.context import ExecutionContext
 from app.info import Info
 from app.info.sections.info_replication import InfoReplication, ReplicationRole
-from app.logger import *  # import for logging configuration
+from app.logger import *  # noqa: F403
 from app.pool import ConnectionPool
 from app.storage.in_memory import ThreadSafeStorage as Storage
 from app.storage.rdb import RDBManager

@@ -50,7 +50,7 @@ class RDBManager:
     def restore_from_snapshot(self, snapshot: bytes, storage: RedisStorage):
         """Restores contents of the storage from a snapshot."""
         try:
-            logging.info(f"restoring storage from rdb snapshot")
+            logging.info("restoring storage from rdb snapshot")
             parser = RDBParser()
             reader = BytesIO(snapshot)
             storage.restore(parser.parse(reader).db)

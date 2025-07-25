@@ -15,7 +15,7 @@ from app.storage.types import RedisValue
 
 class ThreadSafeStorage(SimpleStorage):
     def __init__(self, db: dict | None = None):
-        self._lock = threading.RLock() # use a re-entrant lock
+        self._lock = threading.RLock()  # use a re-entrant lock
         super().__init__(db)
 
     def set(self, key: bytes, value: RedisValue):

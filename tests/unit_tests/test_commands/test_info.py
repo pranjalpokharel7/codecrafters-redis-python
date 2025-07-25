@@ -1,6 +1,7 @@
 from app.commands import CommandInfo
 from tests.unit_tests.test_commands.common import CommandTestBase
 
+
 class TestCommandInfo(CommandTestBase):
     def test_info_replication_section(self):
         cmd = CommandInfo([b"replication"])

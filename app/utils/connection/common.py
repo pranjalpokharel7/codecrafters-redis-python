@@ -1,15 +1,13 @@
 import logging
 import socket
 
-from app.commands.base import ExecutionResult 
+from app.commands.base import ExecutionResult
 from app.commands.handlers.replconf import CommandReplConf
 from app.context import ConnectionContext, ExecutionContext
 from app.info.sections.info_replication import ReplicationRole
 from app.resp.types.array import bytes_to_resp
 from app.resp.types.simple_error import SimpleError
 from app.utils.command_from_resp import command_from_resp_array
-
-MAX_BUF_SIZE = 512
 
 
 def _send_response(client_socket: socket.socket, response: ExecutionResult):
@@ -89,7 +87,7 @@ def handle_connection(
 
     try:
         while True:
-            chunk = conn_ctx.sock.recv(MAX_BUF_SIZE)
+            chunk = conn_ctx.sock.recv(512)
             if not chunk:  # empty buffer means client has disconnected
                 break
             buf += chunk  # add received chunk to buffer

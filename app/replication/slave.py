@@ -1,4 +1,5 @@
-"""This file will contain logic to handle replica in slave mode."""
+"""This file will contain logic to perform initial handshake with the master as
+a slave replica."""
 
 import logging
 import socket
@@ -99,6 +100,8 @@ class ReplicaSlave:
 
         # skip starting byte and trailing carriage return
         rdb_length = int(length_buffer[1:-2].decode())
+
+        # read rdb upto rdb_length bytes
         rdb_snapshot = self._read_exact_length_and_advance(rdb_length)
         ctx.rdb.restore_from_snapshot(rdb_snapshot, ctx.storage)
 

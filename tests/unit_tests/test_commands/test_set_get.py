@@ -2,6 +2,7 @@ import time
 from app.commands import CommandGet, CommandSet
 from tests.unit_tests.test_commands.common import CommandTestBase
 
+
 class TestCommandSetGet(CommandTestBase):
     def test_set_then_get_returns_value(self):
         set_cmd = CommandSet([b"foo", b"bar"])
@@ -31,4 +32,3 @@ class TestCommandSetGet(CommandTestBase):
         get_cmd = CommandGet([b"temp"])
         get_result = self.execute_command(get_cmd)
         assert get_result == b"$-1\r\n"
-

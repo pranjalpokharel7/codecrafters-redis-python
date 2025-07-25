@@ -1,6 +1,7 @@
 from app.commands import CommandPing
 from tests.unit_tests.test_commands.common import CommandTestBase
 
+
 class TestCommandPing(CommandTestBase):
     def test_command_ping_default(self):
         cmd = CommandPing([])
