@@ -77,12 +77,6 @@ class Info:
         with self._lock:
             return self.replication.role
 
-    def add_to_connected_replica_count(self, delta: int):
-        """Add to current connected replica count (replication)."""
-        with self._lock:
-            new_value = max(0, self.replication.connected_slaves + delta)
-            self.replication.connected_slaves = new_value
-
     def get_offset(self) -> int:
         """Get current offset (replication)."""
         with self._lock:

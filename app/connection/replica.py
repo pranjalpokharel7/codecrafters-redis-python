@@ -28,7 +28,7 @@ def connect_to_master_replica(
             master_rdb_snapshot, exec_ctx.storage
         )
 
-        conn_ctx = ConnectionContext(sock=client.sock, is_replica_connection=True)
+        conn_ctx = ConnectionContext(sock=client.sock, is_connection_to_master=True)
 
         # listen to incoming response from master on a background thread
         threading.Thread(

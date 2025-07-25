@@ -56,12 +56,12 @@ def _process_and_update_buffer(
 
         # replicas do not reply on command execution to master
         # but do reply to master's replconf requests for GETACK
-        if not conn_ctx.is_replica_connection or isinstance(command, CommandReplConf):
+        if not conn_ctx.is_connection_to_master or isinstance(command, CommandReplConf):
             _send_response(conn_ctx.sock, response)
 
         if (
             exec_ctx.info.server_role() == ReplicationRole.SLAVE
-            and conn_ctx.is_replica_connection
+            and conn_ctx.is_connection_to_master
         ):
             # for slave, update offset with number of bytes received
             # from master through the replication connection, pos is
@@ -97,9 +97,5 @@ def handle_connection(
         logging.exception(str(e))
 
     finally:
-        # close socket and remove from pool before exiting thread
+        # close socket
         conn_ctx.sock.close()
-
-        if conn_ctx.is_replica_connection:
-            exec_ctx.replica_pool.remove(conn_ctx.uid)
-            exec_ctx.info.add_to_connected_replica_count(-1)

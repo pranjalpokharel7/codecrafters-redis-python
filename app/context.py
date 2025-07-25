@@ -28,9 +28,7 @@ class ConnectionContext:
     doesn't require access through thread locks."""
 
     sock: socket.socket
-    is_replica_connection: bool = (
-        False  # denotes if client sending requests is a replica
-    )
+    is_connection_to_master: bool = False  # denotes if this is a connection to master (from a replica's perspective)
     tx_queue: TransactionQueue = field(default_factory=TransactionQueue)
     uid: str = field(init=False)
 
