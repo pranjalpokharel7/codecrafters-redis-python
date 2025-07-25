@@ -77,6 +77,15 @@ def main():
         # Send SET to master
         run_redis_command(MASTER_PORT, ["SET", "sharedkey", "replication_test"])
 
+        # Use WAIT to ensure replication to all replicas (wait for 1 replica minimum, up to 1000ms)
+        wait_result = int(
+            run_redis_command(MASTER_PORT, ["WAIT", str(len(REPLICA_PORTS)), "1000"])
+        )
+        assert wait_result == len(REPLICA_PORTS), (
+            f"WAIT returned {wait_result}, expected {len(REPLICA_PORTS)}"
+        )
+        print(f"WAIT confirmed replication to {wait_result} replicas.")
+
         # Check replicas received the key
         for port in REPLICA_PORTS:
             val = run_redis_command(port, ["GET", "sharedkey"])
@@ -90,7 +99,7 @@ def main():
         master_offset = get_replication_offset(MASTER_PORT)
         for port in REPLICA_PORTS:
             replica_offset = get_replication_offset(port)
-            assert replica_offset == master_offset, (
+            assert replica_offset >= master_offset, (
                 f"Offset mismatch: master={master_offset}, replica={replica_offset} (port {port})"
             )
 

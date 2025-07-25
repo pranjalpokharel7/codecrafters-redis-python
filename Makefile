@@ -10,5 +10,5 @@ unit-test:
 
 .PHONY: integration-test
 integration-test:
-	pipenv run python3 tests/integration_tests/spec_test.py
-	pipenv run python3 tests/integration_tests/replication_test.py
+	pipenv run python3 tests/integration_tests/test_spec.py
+	pipenv run python3 tests/integration_tests/test_replication.py

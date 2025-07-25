@@ -9,7 +9,7 @@ from app.commands.handlers.ping import CommandPing
 from app.commands.handlers.psync import CommandPsync
 from app.commands.handlers.replconf import CommandReplConf
 from app.context import ExecutionContext
-from app.replication.errors import HandshakeFailed
+from app.replica.errors import HandshakeFailed
 from app.resp.types import SimpleString
 
 
@@ -101,7 +101,7 @@ class ReplicaSlave:
         # skip starting byte and trailing carriage return
         rdb_length = int(length_buffer[1:-2].decode())
 
-        # read rdb upto rdb_length bytes
+        # read rdb up to rdb_length bytes
         rdb_snapshot = self._read_exact_length_and_advance(rdb_length)
         ctx.rdb.restore_from_snapshot(rdb_snapshot, ctx.storage)
 

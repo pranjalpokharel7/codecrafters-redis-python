@@ -1,5 +1,5 @@
 from app.commands.base import ExecutionResult, RedisCommand
-from app.commands.decorators import propagate, queueable
+from app.commands.decorators import broadcast, queueable
 from app.commands.handlers import CommandSet
 from app.commands.parser import CommandArgParser
 from app.context import ConnectionContext, ExecutionContext
@@ -28,7 +28,7 @@ class CommandIncr(RedisCommand):
         parser.add_argument("key", 0)
         self.args = parser.parse_args(args_list)
 
-    @propagate
+    @broadcast
     @queueable
     def exec(
         self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs

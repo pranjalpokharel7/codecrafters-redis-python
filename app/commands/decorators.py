@@ -7,7 +7,7 @@ from app.info.sections.info_replication import ReplicationRole
 from app.resp.types.simple_string import SimpleString
 
 
-def propagate(func):
+def broadcast(func):
     """Decorator to the command execution method exec() which propagates the
     command (if operating as master replica) to other replicas post execution.
 
@@ -25,7 +25,7 @@ def propagate(func):
 
             # send messages to replicas in a background thread (non-blocking)
             threading.Thread(
-                target=exec_ctx.pool.propagate,
+                target=exec_ctx.pool.broadcast_to_all_connections,
                 args=(replication_payload,),
             ).start()
 

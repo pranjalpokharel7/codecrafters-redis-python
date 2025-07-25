@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 
 from app.config import Config
 from app.info import Info
-from app.pool import ConnectionPool
+from app.pool import ReplicaConnectionPool
 from app.queue import TransactionQueue
 from app.storage.in_memory.base import RedisStorage
 from app.storage.rdb.manager import RDBManager
@@ -18,16 +18,17 @@ class ExecutionContext:
     config: Config
     info: Info
     rdb: RDBManager
-    pool: ConnectionPool
+    pool: ReplicaConnectionPool
 
 
 @dataclass
 class ConnectionContext:
-    """References to objects that are specific to a connection and are
-    accessible as long as the connection is alive."""
+    """Context for an incoming client or replica request (client-to-server)."""
 
     sock: socket.socket
-    is_replica_connection: bool = False
+    is_replica_connection: bool = (
+        False  # denotes if client sending requests is a replica
+    )
     tx_queue: TransactionQueue = field(default_factory=TransactionQueue)
     uid: str = field(init=False)
 

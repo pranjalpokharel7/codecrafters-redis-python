@@ -60,7 +60,7 @@ def _count_replicas_in_sync(
 
     # loop until waiting condition is fulfilled
     while True:
-        if ctx.pool.acked_replicas(master_offset) >= acks_required:
+        if ctx.pool.count_acked_connections(master_offset) >= acks_required:
             break
 
         current = int(time() * 1000)
@@ -69,11 +69,11 @@ def _count_replicas_in_sync(
 
         # poll replicas for their latest offset
         threading.Thread(
-            target=ctx.pool.send_getack,
+            target=ctx.pool.request_offset_ack_from_connections,
             args=(master_offset,),
         ).start()
 
         sleep(0.02)  # throttle loop by 20ms
 
-    count = ctx.pool.acked_replicas(master_offset)
+    count = ctx.pool.count_acked_connections(master_offset)
     return count

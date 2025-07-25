@@ -3,7 +3,7 @@ import socket
 import threading
 
 from app.context import ConnectionContext, ExecutionContext
-from app.utils.connection.common import handle_connection
+from app.connection.common import handle_connection
 
 
 def accept_client_connections(

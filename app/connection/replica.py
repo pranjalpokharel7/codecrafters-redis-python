@@ -2,8 +2,8 @@ import logging
 import threading
 
 from app.context import ConnectionContext, ExecutionContext
-from app.replication.slave import ReplicaSlave
-from app.utils.connection.common import handle_connection
+from app.replica.slave import ReplicaSlave
+from app.connection.common import handle_connection
 
 
 def connect_to_master_replica(

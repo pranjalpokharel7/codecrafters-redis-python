@@ -3,7 +3,7 @@ from time import time
 
 from app.commands.arg_mapping import map_to_str
 from app.commands.base import ExecutionResult, RedisCommand
-from app.commands.decorators import queueable, propagate
+from app.commands.decorators import queueable, broadcast
 from app.commands.parser import CommandArgParser
 from app.context import ConnectionContext, ExecutionContext
 from app.resp.types import NIL
@@ -39,7 +39,7 @@ class CommandSet(RedisCommand):
 
         self.args = parser.parse_args(args_list)
 
-    @propagate
+    @broadcast
     @queueable
     def exec(
         self, exec_ctx: ExecutionContext, conn_ctx: ConnectionContext, **kwargs
