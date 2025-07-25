@@ -101,5 +101,5 @@ def handle_connection(
         conn_ctx.sock.close()
 
         if conn_ctx.is_replica_connection:
-            exec_ctx.pool.remove(conn_ctx.uid)
+            exec_ctx.replica_pool.remove(conn_ctx.uid)
             exec_ctx.info.add_to_connected_replica_count(-1)

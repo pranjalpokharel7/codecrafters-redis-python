@@ -8,6 +8,10 @@ from app.storage.types import RedisValue
 
 
 class RedisStorage(ABC):
+    """
+    Exposes interface that is implemented by every in-memory database.
+    """
+
     @abstractmethod
     def get(self, key: bytes) -> RedisValue:
         """Get value of previously stored key, return Nil if no such key

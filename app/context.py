@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 
 from app.config import Config
 from app.info import Info
-from app.pool import ReplicaConnectionPool
+from app.replica.pool import ReplicaConnectionPool
 from app.queue import TransactionQueue
 from app.storage.in_memory.base import RedisStorage
 from app.storage.rdb.manager import RDBManager
@@ -18,12 +18,14 @@ class ExecutionContext:
     config: Config
     info: Info
     rdb: RDBManager
-    pool: ReplicaConnectionPool
+    replica_pool: ReplicaConnectionPool
 
 
 @dataclass
 class ConnectionContext:
-    """Context for an incoming client or replica request (client-to-server)."""
+    """Context for an incoming client or replica request (client-to-server).
+    References to a connection context is specific to a single thread and thus
+    doesn't require access through thread locks."""
 
     sock: socket.socket
     is_replica_connection: bool = (

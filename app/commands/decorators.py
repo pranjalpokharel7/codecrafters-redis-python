@@ -25,7 +25,7 @@ def broadcast(func):
 
             # send messages to replicas in a background thread (non-blocking)
             threading.Thread(
-                target=exec_ctx.pool.broadcast_to_all_connections,
+                target=exec_ctx.replica_pool.broadcast_to_all_connections,
                 args=(replication_payload,),
             ).start()
 

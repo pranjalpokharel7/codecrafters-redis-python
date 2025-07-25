@@ -27,7 +27,7 @@ class CommandReplConfACK(RedisCommand):
     ) -> ExecutionResult:
         try:
             offset = self.args["offset"]
-            exec_ctx.pool.update_last_ack_offset(conn_ctx.uid, offset)
+            exec_ctx.replica_pool.update_last_ack_offset(conn_ctx.uid, offset)
 
         except Exception:
             pass  # ignore bad ACKs

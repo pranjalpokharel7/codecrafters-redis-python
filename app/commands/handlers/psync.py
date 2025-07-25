@@ -40,7 +40,7 @@ class CommandPsync(RedisCommand):
         db = f"${len(snapshot)}\r\n".encode() + snapshot
 
         # add connection to pool since only replicas send psync requests
-        exec_ctx.pool.add(conn_ctx.uid, conn_ctx.sock)
+        exec_ctx.replica_pool.add(conn_ctx.uid, conn_ctx.sock)
         exec_ctx.info.add_to_connected_replica_count(1)
 
         return [ack, db]

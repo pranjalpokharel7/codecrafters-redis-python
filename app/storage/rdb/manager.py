@@ -10,7 +10,8 @@ from app.storage.rdb.parser import RDBParser
 
 class RDBManager:
     """Class that encapsulates logic on storing, retrieving and manipulating
-    database dumps in the form of RDB files."""
+    database dumps in the form of RDB files. Doesn't maintain any internal state so is thread-safe.
+    """
 
     def restore_from_file(
         self, path: str, storage: RedisStorage, read_threshold: int = 10 * 10 * 1024
@@ -47,7 +48,7 @@ class RDBManager:
                 "failed to restore snapshot because key-value contents are corrupted"
             )
 
-    def restore_from_snapshot(self, snapshot: bytes, storage: RedisStorage):
+    def restore_storage_from_snapshot(self, snapshot: bytes, storage: RedisStorage):
         """Restores contents of the storage from a snapshot."""
         try:
             logging.info("restoring storage from rdb snapshot")

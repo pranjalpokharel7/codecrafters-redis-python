@@ -5,7 +5,7 @@ from app.commands.base import ExecutionResult
 from app.config import Config
 from app.context import ConnectionContext, ExecutionContext
 from app.info.base import Info
-from app.pool import ReplicaConnectionPool
+from app.replica.pool import ReplicaConnectionPool
 from app.storage.in_memory import SimpleStorage
 from app.storage.rdb import RDBManager
 

@@ -21,8 +21,13 @@ def connect_to_master_replica(
             listening_port=listening_port,
         )
 
-        # establish connection with master
-        replica.handshake(exec_ctx)
+        # establish connection with master and update offset and in-memory storage
+        master_offset, master_rdb_snapshot = replica.handshake()
+        exec_ctx.info.add_to_offset(master_offset)
+        exec_ctx.rdb.restore_storage_from_snapshot(
+            master_rdb_snapshot, exec_ctx.storage
+        )
+
         conn_ctx = ConnectionContext(sock=replica.sock, is_replica_connection=True)
 
         # listen to incoming response from master on a background thread

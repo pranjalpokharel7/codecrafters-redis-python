@@ -8,7 +8,6 @@ from app.commands.base import RedisCommand
 from app.commands.handlers.ping import CommandPing
 from app.commands.handlers.psync import CommandPsync
 from app.commands.handlers.replconf import CommandReplConf
-from app.context import ExecutionContext
 from app.replica.errors import HandshakeFailed
 from app.resp.types import SimpleString
 
@@ -67,8 +66,9 @@ class ReplicaSlave:
             if pos != -1:
                 return self._read_exact_length_and_advance(pos + 2)
 
-    def handshake(self, ctx: ExecutionContext):
-        """Establish handshake with master replica."""
+    def handshake(self) -> tuple[int, bytes]:
+        """Establish handshake with master replica. Returns a tuple of the current offset
+        of the master and the snapshot of the master's latest RDB."""
         # send PING
         self._send_command_and_expect(CommandPing([]), b"+PONG\r\n")
 
@@ -82,13 +82,12 @@ class ReplicaSlave:
             b"+OK\r\n",
         )
 
-        # parse offset - "+FULLSYNC <replid> <offset>\r\n"
+        # parse offset - "+FULLSYNC <replid> <master_offset>\r\n"
         info, pos = SimpleString.from_bytes(
             self._send_command(CommandPsync([b"?", b"-1"]))
         )
         master_replica_info = info.value.decode().split(" ")
         master_offset = int(master_replica_info[2])
-        ctx.info.add_to_offset(master_offset)
 
         # parse rdb - $<rdb_length>\r\n<rdb>
         if self.buf.startswith(b"$"):
@@ -102,9 +101,7 @@ class ReplicaSlave:
         rdb_length = int(length_buffer[1:-2].decode())
 
         # read rdb up to rdb_length bytes
-        rdb_snapshot = self._read_exact_length_and_advance(rdb_length)
-        ctx.rdb.restore_from_snapshot(rdb_snapshot, ctx.storage)
+        master_rdb_snapshot = self._read_exact_length_and_advance(rdb_length)
 
-        logging.info(
-            "received and processed RDB file: completed handshake with master server"
-        )
+        logging.info("received RDB file: completed handshake with master server")
+        return master_offset, master_rdb_snapshot

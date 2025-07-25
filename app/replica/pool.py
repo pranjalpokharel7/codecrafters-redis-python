@@ -6,8 +6,8 @@ from time import time
 
 
 @dataclass
-class Connection:
-    """Class used to represent a connection in the connection pool."""
+class ReplicaConnection:
+    """Class used to represent a replica connection."""
 
     uid: str  # unique id for the connection
     sock: socket.socket  # actual socket used for connection
@@ -20,7 +20,7 @@ class ReplicaConnectionPool:
 
     # maintain a pool of connections key-ed by some unique id
     # so that pool list can be easily removed/updated
-    _pool: dict[str, Connection]
+    _pool: dict[str, ReplicaConnection]
 
     def __init__(self) -> None:
         self._pool = {}
@@ -28,19 +28,19 @@ class ReplicaConnectionPool:
 
     def add(self, uid: str, sock: socket.socket):
         with self._lock:
-            logging.info(f"adding connection {uid} to pool")
-            self._pool[uid] = Connection(uid, sock)
+            logging.info(f"adding replica connection {uid} to pool")
+            self._pool[uid] = ReplicaConnection(uid, sock)
 
     def remove(self, uid: str):
         with self._lock:
             conn = self._pool.pop(uid, None)
             if conn:
-                logging.warning(f"connection {uid} removed from pool")
+                logging.warning(f"replica connection {uid} removed from pool")
                 conn.sock.close()
 
     def request_offset_ack_from_connections(self, min_offset: int):
         """
-        Request acknowledgement of latest offset from each connection.
+        Request acknowledgement of latest offset from each replica.
         """
         GET_ACK = b"*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n"
         ACK_WAIT_FOR_MS = 200
@@ -72,14 +72,14 @@ class ReplicaConnectionPool:
                 self._pool[uid].awaiting_ack_offset = None
 
     def count_acked_connections(self, min_offset: int) -> int:
-        """This returns the number of connections that have successfully
+        """This returns the number of replicas that have successfully
         acknowledged the most recent offset (min_offset)."""
         with self._lock:
             return sum(
                 1 for conn in self._pool.values() if conn.last_ack_offset >= min_offset
             )
 
-    def broadcast_to_all_connections(self, data: bytes):
+    def broadcast_to_all_connections(self, data: bytes) -> int:
         """Forwards data to all connections.
 
         Returns the number of successful replicas the message was
